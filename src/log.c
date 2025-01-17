@@ -63,17 +63,18 @@ void die(const char *fmt, ...)
 {
     FILE *file = fopen(FILE_ERRORLOG, "a");
 
-    if (!file)
-        exit(EXIT_FAILURE);
+    if (file)
+    {
+        fprintf(file, "%s ", get_current_timestamp());
+        va_list argp;
+        va_start(argp, fmt);
+        vfprintf(file, fmt, argp);
+        va_end(argp);
+        fputc('\n', file);
 
-    fprintf(file, "%s ", get_current_timestamp());
-    va_list argp;
-    va_start(argp, fmt);
-    vfprintf(file, fmt, argp);
-    va_end(argp);
-    fputc('\n', file);
+        fclose(file);
+    }
 
-    fclose(file);
     exit(EXIT_FAILURE);
 }
 
