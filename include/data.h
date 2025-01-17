@@ -6,7 +6,7 @@
  *  | | | || (_) ||   < |_____|| (_| || (_| ||  __/| | | | | || (_) || | | |  *
  *  |_| |_| \___/ |_|\_\        \__,_| \__,_| \___||_| |_| |_| \___/ |_| |_|  *
  *                                                                            *
- * Copyright (C) 2024 qwardo <odrawq.qwardo@gmail.com>                        *
+ * Copyright (C) 2024-2025 qwardo <odrawq.qwardo@gmail.com>                   *
  *                                                                            *
  * This file is part of hok-daemon.                                           *
  *                                                                            *
