@@ -46,9 +46,10 @@
     #define COMMAND_HELPSOMEONE  EMOJI_SEARCH    " Помочь кому-нибудь"
     #define COMMAND_CLOSEPROBLEM EMOJI_OK        " Моя проблема решена"
 
-    #define COMMAND_BAN_SIZE   4
-    #define COMMAND_UNBAN_SIZE 6
+    #define MAX_COMMAND_BAN_SIZE   4
+    #define MAX_COMMAND_UNBAN_SIZE 6
 
+    #define NOKEYBOARD "{\"remove_keyboard\":true}"
     #define get_current_keyboard(chat_id) (has_problem(chat_id) ? \
                                            "{\"keyboard\":" \
                                            "[[{\"text\":\"" COMMAND_CLOSEPROBLEM "\"}," \
@@ -58,8 +59,6 @@
                                            "[[{\"text\":\"" COMMAND_HELPME "\"}," \
                                            "{\"text\":\"" COMMAND_HELPSOMEONE "\"}]]," \
                                            "\"resize_keyboard\":true}")
-
-    #define NOKEYBOARD "{\"remove_keyboard\":true}"
 
     void start_bot(void);
 

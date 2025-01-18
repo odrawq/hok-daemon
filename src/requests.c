@@ -65,7 +65,7 @@ cJSON *get_updates(const int_fast32_t update_id)
 
     response.size = 0;
 
-    char url[URL_SIZE];
+    char url[MAX_URL_SIZE];
     sprintf(url,
             "%s/getUpdates?offset=%" PRIdFAST32,
             BOT_API_URL,
@@ -105,7 +105,7 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
     if (!encoded_message)
         die("Failed to URL encode message");
 
-    char post_fields[POSTFIELDS_SIZE];
+    char post_fields[MAX_POSTFIELDS_SIZE];
     sprintf(post_fields,
             "chat_id=%" PRIdFAST64
             "&text=%s"
@@ -114,7 +114,7 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
             encoded_message,
             keyboard);
 
-    char url[URL_SIZE];
+    char url[MAX_URL_SIZE];
     sprintf(url,
             "%s/sendMessage",
             BOT_API_URL);

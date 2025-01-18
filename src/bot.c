@@ -249,14 +249,14 @@ static void handle_command(const int_fast64_t chat_id,
 
     if (!strcmp(command, COMMAND_BANLIST))
         handle_banlist_command(chat_id, is_root_user);
-    else if (!strncmp(command, COMMAND_BAN, COMMAND_BAN_SIZE))
+    else if (!strncmp(command, COMMAND_BAN, MAX_COMMAND_BAN_SIZE))
         handle_ban_command(chat_id,
                            is_root_user,
-                           command + COMMAND_BAN_SIZE);
-    else if (!strncmp(command, COMMAND_UNBAN, COMMAND_UNBAN_SIZE))
+                           command + MAX_COMMAND_BAN_SIZE);
+    else if (!strncmp(command, COMMAND_UNBAN, MAX_COMMAND_UNBAN_SIZE))
         handle_unban_command(chat_id,
                              is_root_user,
-                             command + COMMAND_UNBAN_SIZE);
+                             command + MAX_COMMAND_UNBAN_SIZE);
     else if (!strcmp(command, COMMAND_START))
         handle_start_command(chat_id, is_root_user, username);
     else if (!strcmp(command, COMMAND_HELPME))

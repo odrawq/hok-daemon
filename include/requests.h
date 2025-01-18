@@ -34,8 +34,8 @@
 
     #define BOT_API_URL "https://api.telegram.org/bot" BOT_TOKEN
 
-    #define URL_SIZE        512
-    #define POSTFIELDS_SIZE 4096
+    #define MAX_URL_SIZE        512
+    #define MAX_POSTFIELDS_SIZE 4096
 
     void init_requests_module(void);
     cJSON *get_updates(const int_fast32_t update_id);
