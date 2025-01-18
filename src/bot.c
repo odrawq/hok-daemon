@@ -350,6 +350,9 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
                 send_message_with_keyboard(chat_id,
                                            EMOJI_OK " Пользователь заблокирован",
                                            NOKEYBOARD);
+                send_message_with_keyboard(target_chat_id,
+                                           EMOJI_ATTENTION " Вы были заблокированы",
+                                           NOKEYBOARD);
             }
         }
     }
@@ -397,6 +400,9 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
                        target_chat_id);
                 send_message_with_keyboard(chat_id,
                                            EMOJI_OK " Пользователь разблокирован",
+                                           NOKEYBOARD);
+                send_message_with_keyboard(target_chat_id,
+                                           EMOJI_OK " Вы были разблокированы",
                                            NOKEYBOARD);
             }
         }
