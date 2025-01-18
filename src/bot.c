@@ -89,7 +89,7 @@ static void unset_outdated_problems(void)
 
             send_message_with_keyboard(chat_id,
                                        EMOJI_ATTENTION " Извините, ваша проблема привысила временной лимит хранения и была закрыта\n\n"
-                                       "Если вам всё ещё нужна помощь, пожалуйста, продублируйте вашу проблему!",
+                                       "Если вам всё ещё нужна помощь, пожалуйста, опишите вашу проблему ещё раз!",
                                        NOKEYBOARD);
             send_message_with_keyboard(chat_id,
                                        EMOJI_BACK " Возвращаю вас в меню",
@@ -411,8 +411,7 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
 {
     char *start_message;
     const char *user_greeting   = EMOJI_GREETING " Добро пожаловать";
-    const char *bot_description = "Я создан для удобной автоматизации процесса человеческой взаимопомощи. " \
-                                  "С помощью моих функций вы можете попросить о помощи, либо сами помочь кому-нибудь!";
+    const char *bot_description = "С помощью моих функций вы можете попросить о помощи, либо сами помочь кому-нибудь.";
 
     if (!username)
     {
