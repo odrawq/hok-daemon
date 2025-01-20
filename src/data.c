@@ -34,8 +34,8 @@
 #include "log.h"
 #include "data.h"
 
+static void load_users_data(void);
 static void save_users_data(void);
-static cJSON *load_users_data(void);
 static cJSON *get_or_create_user_data(const int_fast64_t chat_id, const int save_on_creation);
 
 static cJSON *users_data_cache;
@@ -47,7 +47,16 @@ void init_data_module(void)
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&users_data_cache_lock, &attr);
-    users_data_cache = load_users_data();
+    load_users_data();
+}
+
+int get_state(const int_fast64_t chat_id, const char *state_name)
+{
+    pthread_mutex_lock(&users_data_cache_lock);
+    const cJSON *state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), state_name);
+    pthread_mutex_unlock(&users_data_cache_lock);
+
+    return state->valueint;
 }
 
 void set_state(const int_fast64_t chat_id, const char *state_name, const int state_value)
@@ -60,13 +69,13 @@ void set_state(const int_fast64_t chat_id, const char *state_name, const int sta
     pthread_mutex_unlock(&users_data_cache_lock);
 }
 
-int get_state(const int_fast64_t chat_id, const char *state_name)
+int has_problem(const int_fast64_t chat_id)
 {
     pthread_mutex_lock(&users_data_cache_lock);
-    const cJSON *user_state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), state_name);
+    const int state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), "problem") ? 1 : 0;
     pthread_mutex_unlock(&users_data_cache_lock);
 
-    return user_state->valueint;
+    return state;
 }
 
 void set_problem(const int_fast64_t chat_id, const char *problem)
@@ -95,16 +104,7 @@ void unset_problem(const int_fast64_t chat_id)
     pthread_mutex_unlock(&users_data_cache_lock);
 }
 
-int has_problem(const int_fast64_t chat_id)
-{
-    pthread_mutex_lock(&users_data_cache_lock);
-    const int state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), "problem") ? 1 : 0;
-    pthread_mutex_unlock(&users_data_cache_lock);
-
-    return state;
-}
-
-cJSON *get_problems(const int include_chat_ids, const int banned_problems)
+cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems)
 {
     pthread_mutex_lock(&users_data_cache_lock);
 
@@ -113,8 +113,15 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems)
 
     while (user_data)
     {
-        if ((banned_problems && !get_state(strtoll(user_data->string, NULL, 10), "ban_state")) ||
-            (!banned_problems && get_state(strtoll(user_data->string, NULL, 10), "ban_state")))
+        const int_fast64_t chat_id = strtoll(user_data->string, NULL, 10);
+
+        const int account_ban_state = get_state(chat_id, "account_ban_state");
+        const int problem_pending_state = get_state(chat_id, "problem_pending_state");
+
+        if ((!banned_problems && !pending_problems && (account_ban_state || problem_pending_state)) ||
+            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)) ||
+            (!banned_problems && pending_problems && !problem_pending_state) ||
+            (banned_problems && !pending_problems && !account_ban_state))
         {
             user_data = user_data->next;
             continue;
@@ -156,7 +163,10 @@ cJSON *get_outdated_problems_chat_ids(void)
 
     while (user_data)
     {
-        if (get_state(strtoll(user_data->string, NULL, 10), "ban_state"))
+        const int_fast64_t chat_id = strtoll(user_data->string, NULL, 10);
+
+        if (get_state(chat_id, "account_ban_state") ||
+            get_state(chat_id, "problem_pending_state"))
         {
             user_data = user_data->next;
             continue;
@@ -180,25 +190,7 @@ cJSON *get_outdated_problems_chat_ids(void)
     return outdated_problems_chat_ids;
 }
 
-static void save_users_data(void)
-{
-    char *users_data_string = cJSON_Print(users_data_cache);
-
-    if (!users_data_string)
-        die("Failed to get users data cache");
-
-    FILE *users_data_file = fopen(FILE_USERSDATA, "w");
-
-    if (!users_data_file)
-        die("Failed to open %s", FILE_USERSDATA);
-
-    fprintf(users_data_file, "%s", users_data_string);
-
-    fclose(users_data_file);
-    free(users_data_string);
-}
-
-static cJSON *load_users_data(void)
+static void load_users_data(void)
 {
     FILE *users_data_file = fopen(FILE_USERSDATA, "r");
 
@@ -229,7 +221,25 @@ static cJSON *load_users_data(void)
         die("Failed to parse users data");
 
     free(users_data_string);
-    return users_data;
+    users_data_cache = users_data;
+}
+
+static void save_users_data(void)
+{
+    char *users_data_string = cJSON_Print(users_data_cache);
+
+    if (!users_data_string)
+        die("Failed to get users data cache");
+
+    FILE *users_data_file = fopen(FILE_USERSDATA, "w");
+
+    if (!users_data_file)
+        die("Failed to open %s", FILE_USERSDATA);
+
+    fprintf(users_data_file, "%s", users_data_string);
+
+    fclose(users_data_file);
+    free(users_data_string);
 }
 
 static cJSON *get_or_create_user_data(const int_fast64_t chat_id, const int save_on_creation)
@@ -245,7 +255,8 @@ static cJSON *get_or_create_user_data(const int_fast64_t chat_id, const int save
     {
         user_data = cJSON_CreateObject();
 
-        cJSON_AddNumberToObject(user_data, "ban_state", 0);
+        cJSON_AddNumberToObject(user_data, "account_ban_state", 0);
+        cJSON_AddNumberToObject(user_data, "problem_pending_state", 1);
         cJSON_AddNumberToObject(user_data, "problem_description_state", 0);
         cJSON_AddItemToObject(users_data_cache, chat_id_string, user_data);
 

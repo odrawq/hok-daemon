@@ -36,15 +36,15 @@
     #define MAX_USERNAME_SIZE   32
     #define MAX_CHAT_ID_SIZE    20
     #define MAX_PROBLEM_SIZE    1024
-    #define MAX_PROBLEM_SECONDS 2592000
+    #define MAX_PROBLEM_SECONDS 1814400
 
     void init_data_module(void);
-    void set_state(const int_fast64_t chat_id, const char *state_name, const int state_value);
     int get_state(const int_fast64_t chat_id, const char *state_name);
+    void set_state(const int_fast64_t chat_id, const char *state_name, const int state_value);
+    int has_problem(const int_fast64_t chat_id);
     void set_problem(const int_fast64_t chat_id, const char *problem);
     void unset_problem(const int_fast64_t chat_id);
-    int has_problem(const int_fast64_t chat_id);
-    cJSON *get_problems(const int include_chat_ids, const int banned_problems);
+    cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems);
     cJSON *get_outdated_problems_chat_ids(void);
 
 #endif

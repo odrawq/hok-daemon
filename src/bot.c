@@ -40,11 +40,16 @@
 static void unset_outdated_problems(void);
 static void handle_updates(cJSON *updates, int_fast32_t *last_update_id);
 static void *handle_message(void *cjson_message);
-static void handle_problem(const int_fast64_t chat_id, const char *username, const char *problem);
+static void handle_problem(const int_fast64_t chat_id,
+                           const int is_root_user,
+                           const char *username,
+                           const char *problem);
 static void handle_command(const int_fast64_t chat_id,
                            const int is_root_user,
                            const char *username,
                            const char *command);
+static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_root_user);
+static void handle_approve_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_banlist_command(const int_fast64_t chat_id, const int is_root_user);
 static void handle_ban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_unban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
@@ -74,30 +79,27 @@ static void unset_outdated_problems(void)
 {
     cJSON *outdated_problems_chat_ids = get_outdated_problems_chat_ids();
 
-    if (outdated_problems_chat_ids)
+    if (!outdated_problems_chat_ids)
+        return;
+
+    const int outdated_problems_chat_ids_size = cJSON_GetArraySize(outdated_problems_chat_ids);
+
+    for (int i = 0; i < outdated_problems_chat_ids_size; ++i)
     {
-        const int outdated_problems_chat_ids_size = cJSON_GetArraySize(outdated_problems_chat_ids);
+        const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(outdated_problems_chat_ids, i)), NULL, 10);
+        unset_problem(chat_id);
 
-        for (int i = 0; i < outdated_problems_chat_ids_size; ++i)
-        {
-            const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(outdated_problems_chat_ids, i)), NULL, 10);
-            unset_problem(chat_id);
+        report("User %" PRIdFAST64
+               " problem exceeded the storage time limit and automatically closed",
+               chat_id);
 
-            report("User %" PRIdFAST64
-                   " problem automatically closed",
-                   chat_id);
-
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_ATTENTION " Извините, ваша проблема привысила временной лимит хранения и была закрыта\n\n"
-                                       "Если вам всё ещё нужна помощь, пожалуйста, опишите вашу проблему ещё раз!",
-                                       NOKEYBOARD);
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_BACK " Возвращаю вас в меню",
-                                       get_current_keyboard(chat_id));
-        }
-
-        cJSON_Delete(outdated_problems_chat_ids);
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_ATTENTION " Извините, ваша проблема привысила временной лимит хранения и была закрыта\n\n"
+                                   "Если вам всё ещё нужна помощь, пожалуйста, опишите вашу проблему ещё раз!",
+                                   get_current_keyboard(chat_id));
     }
+
+    cJSON_Delete(outdated_problems_chat_ids);
 }
 
 static void handle_updates(cJSON* updates, int_fast32_t *last_update_id)
@@ -133,19 +135,17 @@ static void *handle_message(void *cjson_message)
 
     const cJSON *chat = cJSON_GetObjectItem(message, "chat");
     const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(chat, "id"));
+
     const int is_root_user = (chat_id == ROOT_CHAT_ID);
 
-    if (get_state(chat_id, "ban_state"))
+    if (get_state(chat_id, "account_ban_state"))
     {
         if (is_root_user)
-            set_state(chat_id, "ban_state", 0);
+            set_state(ROOT_CHAT_ID, "account_ban_state", 0);
         else
         {
             send_message_with_keyboard(chat_id,
                                        EMOJI_FAILED " Извините, ваш аккаунт заблокирован",
-                                       NOKEYBOARD);
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_BACK " Возвращаю вас в меню",
                                        get_current_keyboard(chat_id));
 
             cJSON_Delete(message);
@@ -158,6 +158,7 @@ static void *handle_message(void *cjson_message)
 
     if (get_state(chat_id, "problem_description_state"))
         handle_problem(chat_id,
+                       is_root_user,
                        username ? username->valuestring : NULL,
                        text ? text->valuestring : NULL);
     else
@@ -170,30 +171,35 @@ static void *handle_message(void *cjson_message)
     pthread_exit(NULL);
 }
 
-static void handle_problem(const int_fast64_t chat_id, const char *username, const char *problem)
+static void handle_problem(const int_fast64_t chat_id,
+                           const int is_root_user,
+                           const char *username,
+                           const char *problem)
 {
-    if (!username)
-    {
-        set_state(chat_id, "problem_description_state", 0);
-
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_FAILED " Извините, для этой функции вам нужно "
-                                   "создать имя пользователя в настройках Telegram",
-                                   NOKEYBOARD);
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_BACK " Возвращаю вас в меню",
-                                   get_current_keyboard(chat_id));
-        return;
-    }
-
     if (!problem)
     {
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, я понимаю только текст",
                                    NOKEYBOARD);
+        return;
+    }
+
+    if (!strcmp(problem, COMMAND_CANCEL))
+    {
+        set_state(chat_id, "problem_description_state", 0);
         send_message_with_keyboard(chat_id,
-                                   EMOJI_BACK " Пожалуйста, попробуйте описать вашу проблему ещё раз",
-                                   NOKEYBOARD);
+                                   EMOJI_OK " Описание проблемы отменено",
+                                   get_current_keyboard(chat_id));
+        return;
+    }
+
+    if (!username)
+    {
+        set_state(chat_id, "problem_description_state", 0);
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, для этой функции вам нужно "
+                                   "создать имя пользователя в настройках Telegram",
+                                   get_current_keyboard(chat_id));
         return;
     }
 
@@ -201,9 +207,6 @@ static void handle_problem(const int_fast64_t chat_id, const char *username, con
     {
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, ваша проблема слишком большая",
-                                   NOKEYBOARD);
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_BACK " Пожалуйста, попробуйте описать вашу проблему ещё раз",
                                    NOKEYBOARD);
         return;
     }
@@ -214,21 +217,38 @@ static void handle_problem(const int_fast64_t chat_id, const char *username, con
             username,
             problem);
 
-    set_problem(chat_id, username_with_problem);
     set_state(chat_id, "problem_description_state", 0);
+    set_problem(chat_id, username_with_problem);
 
     report("User %" PRIdFAST64
            " created problem '%s'",
            chat_id,
            username_with_problem);
 
+    if (get_state(chat_id, "problem_pending_state"))
+    {
+        if (is_root_user)
+            set_state(ROOT_CHAT_ID, "problem_pending_state", 0);
+        else
+        {
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_INFO " Перед публикацией ваша проблема должна пройти проверку\n\n"
+                                       "Пожалуйста, ожидайте!",
+                                       get_current_keyboard(chat_id));
+            send_message_with_keyboard(ROOT_CHAT_ID,
+                                       EMOJI_INFO " Появилась новая проблема для проверки",
+                                       get_current_keyboard(ROOT_CHAT_ID));
+           return;
+        }
+    }
+
     send_message_with_keyboard(chat_id,
-                               EMOJI_OK " Ваша проблема сохранена и будет автоматически закрыта через 30 дней\n\n"
+                               EMOJI_OK " Ваша проблема сохранена и будет автоматически закрыта через 21 день\n\n"
                                "Надеюсь вам помогут как можно быстрее!",
-                               NOKEYBOARD);
-    send_message_with_keyboard(chat_id,
-                               EMOJI_BACK " Возвращаю вас в меню",
                                get_current_keyboard(chat_id));
+    send_message_with_keyboard(ROOT_CHAT_ID,
+                               EMOJI_INFO " Появилась новая проблема",
+                               get_current_keyboard(ROOT_CHAT_ID));
 }
 
 static void handle_command(const int_fast64_t chat_id,
@@ -240,14 +260,17 @@ static void handle_command(const int_fast64_t chat_id,
     {
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, я понимаю только текст",
-                                   NOKEYBOARD);
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_BACK " Пожалуйста, попробуйте выбрать пункт в меню ещё раз",
                                    get_current_keyboard(chat_id));
         return;
     }
 
-    if (!strcmp(command, COMMAND_BANLIST))
+    if (!strcmp(command, COMMAND_PENDINGLIST))
+        handle_pendinglist_command(chat_id, is_root_user);
+    else if (!strncmp(command, COMMAND_APPROVE, MAX_COMMAND_APPROVE_SIZE))
+        handle_approve_command(chat_id,
+                               is_root_user,
+                               command + MAX_COMMAND_APPROVE_SIZE);
+    else if (!strcmp(command, COMMAND_BANLIST))
         handle_banlist_command(chat_id, is_root_user);
     else if (!strncmp(command, COMMAND_BAN, MAX_COMMAND_BAN_SIZE))
         handle_ban_command(chat_id,
@@ -265,14 +288,88 @@ static void handle_command(const int_fast64_t chat_id,
         handle_helpsomeone_command(chat_id, is_root_user);
     else if (!strcmp(command, COMMAND_CLOSEPROBLEM))
         handle_closeproblem_command(chat_id);
+    else if (!strcmp(command, COMMAND_CANCEL))
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, вы не описываете проблему",
+                                   get_current_keyboard(chat_id));
+    else
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, я не знаю такого действия",
+                                   get_current_keyboard(chat_id));
+}
+
+static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_root_user)
+{
+    if (!is_root_user)
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, у вас недостаточно прав",
+                                   get_current_keyboard(chat_id));
     else
     {
+        cJSON *problems = get_problems(1, 0, 1);
+        const int problems_size = cJSON_GetArraySize(problems);
+
+        if (!problems_size)
+            send_message_with_keyboard(ROOT_CHAT_ID,
+                                       EMOJI_OK " Проблем на удержании не найдено",
+                                       get_current_keyboard(ROOT_CHAT_ID));
+        else
+            for (int i = 0; i < problems_size; ++i)
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
+                                           i + 1 != problems_size ? NOKEYBOARD : get_current_keyboard(ROOT_CHAT_ID));
+
+        cJSON_Delete(problems);
+    }
+}
+
+static void handle_approve_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
+{
+    if (!is_root_user)
         send_message_with_keyboard(chat_id,
-                                   EMOJI_FAILED " Извините, я не знаю такой пункт",
-                                   NOKEYBOARD);
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_BACK " Пожалуйста, попробуйте выбрать пункт в меню ещё раз",
+                                   EMOJI_FAILED " Извините, у вас недостаточно прав",
                                    get_current_keyboard(chat_id));
+    else
+    {
+        while (*arg == ' ')
+            ++arg;
+
+        if (!*arg)
+            send_message_with_keyboard(ROOT_CHAT_ID,
+                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       get_current_keyboard(ROOT_CHAT_ID));
+        else
+        {
+            char *end;
+            const int_fast64_t target_chat_id = strtoll(arg, &end, 10);
+
+            if (*end || end == arg)
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           get_current_keyboard(ROOT_CHAT_ID));
+            else if (!get_state(target_chat_id, "problem_pending_state"))
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, проблема не удерживается",
+                                           get_current_keyboard(ROOT_CHAT_ID));
+            else
+            {
+                set_state(target_chat_id, "problem_pending_state", 0);
+
+                report("User %" PRIdFAST64
+                       " approved user %" PRIdFAST64
+                       " problem",
+                       ROOT_CHAT_ID,
+                       target_chat_id);
+
+                send_message_with_keyboard(target_chat_id,
+                                           EMOJI_OK " Ваша проблема снята с удержания и будет автоматически закрыта через 21 день\n\n"
+                                           "Надеюсь вам помогут как можно быстрее!",
+                                           get_current_keyboard(target_chat_id));
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_OK " Проблема снята с удержания",
+                                           get_current_keyboard(ROOT_CHAT_ID));
+            }
+        }
     }
 }
 
@@ -281,30 +378,24 @@ static void handle_banlist_command(const int_fast64_t chat_id, const int is_root
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   NOKEYBOARD);
+                                   get_current_keyboard(chat_id));
     else
     {
-        cJSON *problems = get_problems(1, 1);
+        cJSON *problems = get_problems(1, 1, 0);
         const int problems_size = cJSON_GetArraySize(problems);
 
         if (!problems_size)
-            send_message_with_keyboard(chat_id,
+            send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_OK " Проблем заблокированных пользователей не найдено",
-                                       NOKEYBOARD);
+                                       get_current_keyboard(ROOT_CHAT_ID));
         else
-        {
             for (int i = 0; i < problems_size; ++i)
-                send_message_with_keyboard(chat_id,
+                send_message_with_keyboard(ROOT_CHAT_ID,
                                            cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
-                                           NOKEYBOARD);
-        }
+                                           i + 1 != problems_size ? NOKEYBOARD : get_current_keyboard(ROOT_CHAT_ID));
 
         cJSON_Delete(problems);
     }
-
-    send_message_with_keyboard(chat_id,
-                               EMOJI_BACK " Возвращаю вас в меню",
-                               get_current_keyboard(chat_id));
 }
 
 static void handle_ban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
@@ -312,54 +403,54 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   NOKEYBOARD);
+                                   get_current_keyboard(chat_id));
     else
     {
         while (*arg == ' ')
             ++arg;
 
         if (!*arg)
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_FAILED " Извините, вы не указали id для блокировки",
-                                       NOKEYBOARD);
+            send_message_with_keyboard(ROOT_CHAT_ID,
+                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       get_current_keyboard(ROOT_CHAT_ID));
         else
         {
             char *end;
             const int_fast64_t target_chat_id = strtoll(arg, &end, 10);
 
             if (*end || end == arg)
-                send_message_with_keyboard(chat_id,
-                                           EMOJI_FAILED " Извините, указанный id для блокировки некорректен",
-                                           NOKEYBOARD);
-            else if (chat_id == target_chat_id)
-                send_message_with_keyboard(chat_id,
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           get_current_keyboard(ROOT_CHAT_ID));
+            else if (target_chat_id == ROOT_CHAT_ID)
+                send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, вы не можете заблокировать сами себя",
-                                           NOKEYBOARD);
-            else if (get_state(target_chat_id, "ban_state"))
-                send_message_with_keyboard(chat_id,
+                                           get_current_keyboard(ROOT_CHAT_ID));
+            else if (get_state(target_chat_id, "account_ban_state"))
+                send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, пользователь уже заблокирован",
-                                           NOKEYBOARD);
+                                           get_current_keyboard(ROOT_CHAT_ID));
             else
             {
-                set_state(target_chat_id, "ban_state", 1);
+                set_state(target_chat_id, "account_ban_state", 1);
+
+                if (get_state(target_chat_id, "problem_pending_state"))
+                    set_state(target_chat_id, "problem_pending_state", 0);
 
                 report("User %" PRIdFAST64
                        " banned user %" PRIdFAST64,
-                       chat_id,
+                       ROOT_CHAT_ID,
                        target_chat_id);
-                send_message_with_keyboard(chat_id,
-                                           EMOJI_OK " Пользователь заблокирован",
-                                           NOKEYBOARD);
+
                 send_message_with_keyboard(target_chat_id,
                                            EMOJI_ATTENTION " Вы были заблокированы",
-                                           NOKEYBOARD);
+                                           get_current_keyboard(target_chat_id));
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_OK " Пользователь заблокирован",
+                                           get_current_keyboard(ROOT_CHAT_ID));
             }
         }
     }
-
-    send_message_with_keyboard(chat_id,
-                               EMOJI_BACK " Возвращаю вас в меню",
-                               get_current_keyboard(chat_id));
 }
 
 static void handle_unban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
@@ -367,57 +458,58 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   NOKEYBOARD);
+                                   get_current_keyboard(chat_id));
     else
     {
         while (*arg == ' ')
             ++arg;
 
         if (!*arg)
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_FAILED " Извините, вы не указали id для разблокировки",
-                                       NOKEYBOARD);
+            send_message_with_keyboard(ROOT_CHAT_ID,
+                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       get_current_keyboard(ROOT_CHAT_ID));
         else
         {
             char *end;
             const int_fast64_t target_chat_id = strtoll(arg, &end, 10);
 
             if (*end || end == arg)
-                send_message_with_keyboard(chat_id,
-                                           EMOJI_FAILED " Извините, указанный id для разблокировки некорректен",
-                                           NOKEYBOARD);
-            else if (!get_state(target_chat_id, "ban_state"))
-                send_message_with_keyboard(chat_id,
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           get_current_keyboard(ROOT_CHAT_ID));
+            else if (!get_state(target_chat_id, "account_ban_state"))
+                send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, пользователь не заблокирован",
-                                           NOKEYBOARD);
+                                           get_current_keyboard(ROOT_CHAT_ID));
             else
             {
-                set_state(target_chat_id, "ban_state", 0);
+                if (has_problem(target_chat_id))
+                    unset_problem(target_chat_id);
+
+                set_state(target_chat_id, "problem_pending_state", 1);
+                set_state(target_chat_id, "account_ban_state", 0);
 
                 report("User %" PRIdFAST64
                        " unbanned user %" PRIdFAST64,
-                       chat_id,
+                       ROOT_CHAT_ID,
                        target_chat_id);
-                send_message_with_keyboard(chat_id,
-                                           EMOJI_OK " Пользователь разблокирован",
-                                           NOKEYBOARD);
+
                 send_message_with_keyboard(target_chat_id,
                                            EMOJI_OK " Вы были разблокированы",
-                                           NOKEYBOARD);
+                                           get_current_keyboard(target_chat_id));
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_OK " Пользователь разблокирован",
+                                           get_current_keyboard(ROOT_CHAT_ID));
             }
         }
     }
-
-    send_message_with_keyboard(chat_id,
-                               EMOJI_BACK " Возвращаю вас в меню",
-                               get_current_keyboard(chat_id));
 }
 
 static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username)
 {
     char *start_message;
     const char *user_greeting   = EMOJI_GREETING " Добро пожаловать";
-    const char *bot_description = "С помощью моих функций вы можете попросить о помощи, либо сами помочь кому-нибудь.";
+    const char *bot_description = "Оказывайте поддержку и помощь другим, а также получайте решения собственных проблем.";
 
     if (!username)
     {
@@ -445,15 +537,19 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
 
     if (is_root_user)
     {
-        const char *message_for_root_user = "\n\n" EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ" \
-                                            "\n\n" EMOJI_INFO " Чтобы заблокировать пользователя, используйте команду:\n" \
-                                            "/ban <id>" \
-                                            "\n\n" EMOJI_INFO " Чтобы разблокировать пользователя, используйте команду:\n" \
-                                            "/unban <id>" \
+        const char *message_for_root_user = "\n\n" EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ"
+                                            "\n\n" EMOJI_INFO " Чтобы увидеть проблемы на удержании, используйте команду:\n"
+                                            "/pendinglist"
+                                            "\n\n" EMOJI_INFO " Чтобы снять проблему с удержания, используйте команду:\n"
+                                            "/approve <id>"
+                                            "\n\n" EMOJI_INFO " Чтобы увидеть проблемы заблокированных пользователей, используйте команду:\n"
+                                            "/banlist"
+                                            "\n\n" EMOJI_INFO " Чтобы заблокировать пользователя, используйте команду:\n"
+                                            "/ban <id>"
+                                            "\n\n" EMOJI_INFO " Чтобы разблокировать пользователя, используйте команду:\n"
+                                            "/unban <id>"
                                             "\n\n" EMOJI_INFO " Вместо <id> нужно указать идентификатор пользователя. "
-                                            "Идентификатор находится перед проблемой пользователя в круглых скобках."
-                                            "\n\n" EMOJI_INFO " Чтобы увидеть проблемы заблокированных пользователей, используйте команду:\n" \
-                                            "/banlist";
+                                            "Идентификатор находится перед проблемой пользователя в круглых скобках.";
 
         start_message = realloc(start_message, strlen(start_message) + strlen(message_for_root_user) + 1);
 
@@ -465,9 +561,6 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
 
     send_message_with_keyboard(chat_id,
                                start_message,
-                               NOKEYBOARD);
-    send_message_with_keyboard(chat_id,
-                               EMOJI_MENU " Пожалуйста, выберите пункт в меню",
                                get_current_keyboard(chat_id));
 
     free(start_message);
@@ -476,57 +569,42 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
 static void handle_helpme_command(const int_fast64_t chat_id, const char *username)
 {
     if (has_problem(chat_id))
-    {
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, вы уже описали вашу проблему",
-                                   NOKEYBOARD);
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_BACK " Возвращаю вас в меню",
                                    get_current_keyboard(chat_id));
-    }
     else
     {
-        if (username)
-        {
-            set_state(chat_id, "problem_description_state", 1);
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_WRITE " Пожалуйста, опишите вашу проблему",
-                                       NOKEYBOARD);
-        }
-        else
-        {
+        if (!username)
             send_message_with_keyboard(chat_id,
                                        EMOJI_FAILED " Извините, для этой функции вам нужно "
                                        "создать имя пользователя в настройках Telegram",
-                                       NOKEYBOARD);
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_BACK " Возвращаю вас в меню",
                                        get_current_keyboard(chat_id));
+        else
+        {
+            set_state(chat_id, "problem_description_state", 1);
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_WRITE " Пожалуйста, опишите вашу проблему (для отмены - /cancel)",
+                                       NOKEYBOARD);
         }
     }
 }
 
 static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user)
 {
-    cJSON *problems = get_problems(is_root_user, 0);
+    cJSON *problems = get_problems(is_root_user, 0, 0);
     const int problems_size = cJSON_GetArraySize(problems);
 
     if (!problems_size)
         send_message_with_keyboard(chat_id,
                                    EMOJI_OK " Пока что никто не нуждается в помощи",
-                                   NOKEYBOARD);
+                                   get_current_keyboard(chat_id));
     else
-    {
         for (int i = 0; i < problems_size; ++i)
             send_message_with_keyboard(chat_id,
                                        cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
-                                       NOKEYBOARD);
-    }
+                                       i + 1 != problems_size ? NOKEYBOARD : get_current_keyboard(chat_id));
 
     cJSON_Delete(problems);
-    send_message_with_keyboard(chat_id,
-                               EMOJI_BACK " Возвращаю вас в меню",
-                               get_current_keyboard(chat_id));
 }
 
 static void handle_closeproblem_command(const int_fast64_t chat_id)
@@ -534,21 +612,25 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
     if (!has_problem(chat_id))
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас нет проблем для закрытия",
-                                   NOKEYBOARD);
+                                   get_current_keyboard(chat_id));
     else
     {
-        unset_problem(chat_id);
+        if (get_state(chat_id, "problem_pending_state"))
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_FAILED " Извините, вы не можете закрыть проблему, которая находится на удержании",
+                                       get_current_keyboard(chat_id));
+        else
+        {
+            unset_problem(chat_id);
 
-        report("User %" PRIdFAST64
-               " closed his problem",
-               chat_id);
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_OK " Ваша проблема закрыта\n\n"
-                                   "Я очень рад, что вам смогли помочь!",
-                                   NOKEYBOARD);
+            report("User %" PRIdFAST64
+                   " closed his problem",
+                   chat_id);
+
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_OK " Ваша проблема закрыта\n\n"
+                                       "Я очень рад, что ваша проблема решена!",
+                                       get_current_keyboard(chat_id));
+        }
     }
-
-    send_message_with_keyboard(chat_id,
-                               EMOJI_BACK " Возвращаю вас в меню",
-                               get_current_keyboard(chat_id));
 }

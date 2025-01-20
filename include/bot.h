@@ -30,24 +30,26 @@
 
     #define EMOJI_OK        "\U00002705"
     #define EMOJI_FAILED    "\U0000274C"
-    #define EMOJI_BACK      "\U000021A9"
     #define EMOJI_SEARCH    "\U0001F50E"
     #define EMOJI_ATTENTION "\U00002757"
     #define EMOJI_WRITE     "\U0001F58A"
-    #define EMOJI_MENU      "\U0001F4CB"
     #define EMOJI_GREETING  "\U0001F44B"
     #define EMOJI_INFO      "\U00002139"
 
+    #define COMMAND_PENDINGLIST  "/pendinglist"
+    #define COMMAND_APPROVE      "/approve"
+    #define COMMAND_BANLIST      "/banlist"
     #define COMMAND_BAN          "/ban"
     #define COMMAND_UNBAN        "/unban"
-    #define COMMAND_BANLIST      "/banlist"
     #define COMMAND_START        "/start"
+    #define COMMAND_CANCEL       "/cancel"
     #define COMMAND_HELPME       EMOJI_ATTENTION " Мне нужна помощь"
     #define COMMAND_HELPSOMEONE  EMOJI_SEARCH    " Помочь кому-нибудь"
     #define COMMAND_CLOSEPROBLEM EMOJI_OK        " Моя проблема решена"
 
-    #define MAX_COMMAND_BAN_SIZE   4
-    #define MAX_COMMAND_UNBAN_SIZE 6
+    #define MAX_COMMAND_APPROVE_SIZE 8
+    #define MAX_COMMAND_BAN_SIZE     4
+    #define MAX_COMMAND_UNBAN_SIZE   6
 
     #define NOKEYBOARD "{\"remove_keyboard\":true}"
     #define get_current_keyboard(chat_id) (has_problem(chat_id) ? \
