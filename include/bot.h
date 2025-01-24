@@ -37,7 +37,8 @@
     #define EMOJI_INFO      "\U00002139"
 
     #define COMMAND_PENDINGLIST  "/pendinglist"
-    #define COMMAND_APPROVE      "/approve"
+    #define COMMAND_CONFIRM      "/confirm"
+    #define COMMAND_DECLINE      "/decline"
     #define COMMAND_BANLIST      "/banlist"
     #define COMMAND_BAN          "/ban"
     #define COMMAND_UNBAN        "/unban"
@@ -47,7 +48,8 @@
     #define COMMAND_HELPSOMEONE  EMOJI_SEARCH    " Помочь кому-нибудь"
     #define COMMAND_CLOSEPROBLEM EMOJI_OK        " Моя проблема решена"
 
-    #define MAX_COMMAND_APPROVE_SIZE 8
+    #define MAX_COMMAND_CONFIRM_SIZE 8
+    #define MAX_COMMAND_DECLINE_SIZE 8
     #define MAX_COMMAND_BAN_SIZE     4
     #define MAX_COMMAND_UNBAN_SIZE   6
 

@@ -50,7 +50,8 @@ static void handle_command(const int_fast64_t chat_id,
                            const char *username,
                            const char *command);
 static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_root_user);
-static void handle_approve_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
+static void handle_confirm_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
+static void handle_decline_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_banlist_command(const int_fast64_t chat_id, const int is_root_user);
 static void handle_ban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_unban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
@@ -284,10 +285,14 @@ static void handle_command(const int_fast64_t chat_id,
 
     if (!strcmp(command, COMMAND_PENDINGLIST))
         handle_pendinglist_command(chat_id, is_root_user);
-    else if (!strncmp(command, COMMAND_APPROVE, MAX_COMMAND_APPROVE_SIZE))
-        handle_approve_command(chat_id,
+    else if (!strncmp(command, COMMAND_CONFIRM, MAX_COMMAND_CONFIRM_SIZE))
+        handle_confirm_command(chat_id,
                                is_root_user,
-                               command + MAX_COMMAND_APPROVE_SIZE);
+                               command + MAX_COMMAND_CONFIRM_SIZE);
+    else if (!strncmp(command, COMMAND_DECLINE, MAX_COMMAND_DECLINE_SIZE))
+        handle_decline_command(chat_id,
+                               is_root_user,
+                               command + MAX_COMMAND_DECLINE_SIZE);
     else if (!strcmp(command, COMMAND_BANLIST))
         handle_banlist_command(chat_id, is_root_user);
     else if (!strncmp(command, COMMAND_BAN, MAX_COMMAND_BAN_SIZE))
@@ -341,7 +346,7 @@ static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_
     }
 }
 
-static void handle_approve_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
+static void handle_confirm_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
 {
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
@@ -374,7 +379,7 @@ static void handle_approve_command(const int_fast64_t chat_id, const int is_root
                 set_state(target_chat_id, "problem_pending_state", 0);
 
                 report("User %" PRIdFAST64
-                       " approved user %" PRIdFAST64
+                       " confirmed user %" PRIdFAST64
                        " problem",
                        ROOT_CHAT_ID,
                        target_chat_id);
@@ -385,6 +390,56 @@ static void handle_approve_command(const int_fast64_t chat_id, const int is_root
                                            "");
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_OK " Проблема снята с удержания",
+                                           "");
+            }
+        }
+    }
+}
+
+static void handle_decline_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
+{
+    if (!is_root_user)
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, у вас недостаточно прав",
+                                   "");
+    else
+    {
+        while (*arg == ' ')
+            ++arg;
+
+        if (!*arg)
+            send_message_with_keyboard(ROOT_CHAT_ID,
+                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       "");
+        else
+        {
+            char *end;
+            const int_fast64_t target_chat_id = strtoll(arg, &end, 10);
+
+            if (*end || end == arg)
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           "");
+            else if (!get_state(target_chat_id, "problem_pending_state"))
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, проблема не удерживается",
+                                           "");
+            else
+            {
+                unset_problem(target_chat_id);
+
+                report("User %" PRIdFAST64
+                       " declined user %" PRIdFAST64
+                       " problem",
+                       ROOT_CHAT_ID,
+                       target_chat_id);
+
+                send_message_with_keyboard(target_chat_id,
+                                           EMOJI_FAILED " Извините, ваша проблема отклонена\n\n"
+                                           "Пожалуйста, попробуйте описать вашу проблему ещё раз!",
+                                           get_current_keyboard(target_chat_id));
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_OK " Проблема отклонена",
                                            "");
             }
         }
@@ -556,15 +611,17 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
     if (is_root_user)
     {
         const char *message_for_root_user = "\n\n" EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ"
-                                            "\n\n" EMOJI_INFO " Чтобы увидеть проблемы на удержании, используйте команду:\n"
+                                            "\n\n" EMOJI_INFO " Вывести проблемы на удержании:\n"
                                             "/pendinglist"
-                                            "\n\n" EMOJI_INFO " Чтобы снять проблему с удержания, используйте команду:\n"
-                                            "/approve <id>"
-                                            "\n\n" EMOJI_INFO " Чтобы увидеть проблемы заблокированных пользователей, используйте команду:\n"
+                                            "\n\n" EMOJI_INFO " Снять проблему с удержания:\n"
+                                            "/confirm <id>"
+                                            "\n\n" EMOJI_INFO " Отклонить проблему на удержании:\n"
+                                            "/decline <id>"
+                                            "\n\n" EMOJI_INFO " Вывести проблемы заблокированных пользователей:\n"
                                             "/banlist"
-                                            "\n\n" EMOJI_INFO " Чтобы заблокировать пользователя, используйте команду:\n"
+                                            "\n\n" EMOJI_INFO " Заблокировать пользователя:\n"
                                             "/ban <id>"
-                                            "\n\n" EMOJI_INFO " Чтобы разблокировать пользователя, используйте команду:\n"
+                                            "\n\n" EMOJI_INFO " Разблокировать пользователя:\n"
                                             "/unban <id>"
                                             "\n\n" EMOJI_INFO " Вместо <id> нужно указать идентификатор пользователя. "
                                             "Идентификатор находится перед проблемой пользователя в круглых скобках.";
