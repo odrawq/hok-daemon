@@ -38,7 +38,8 @@
 #include "bot.h"
 
 static void unset_outdated_problems(void);
-static void handle_updates(cJSON *updates, int_fast32_t *last_update_id);
+static void handle_updates(cJSON *updates, int_fast32_t *last_update_id, const int maintenance_mode);
+static void *handle_message_in_maintenance_mode(void *cjson_message);
 static void *handle_message(void *cjson_message);
 static void handle_problem(const int_fast64_t chat_id,
                            const int is_root_user,
@@ -58,19 +59,21 @@ static void handle_helpme_command(const int_fast64_t chat_id, const char *userna
 static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user);
 static void handle_closeproblem_command(const int_fast64_t chat_id);
 
-void start_bot(void)
+void start_bot(const int maintenance_mode)
 {
     int_fast32_t last_update_id = 0;
 
     for (;;)
     {
-        unset_outdated_problems();
+        if (!maintenance_mode)
+            unset_outdated_problems();
+
         cJSON *updates = get_updates(last_update_id);
 
         if (!updates)
             continue;
 
-        handle_updates(updates, &last_update_id);
+        handle_updates(updates, &last_update_id, maintenance_mode);
         cJSON_Delete(updates);
     }
 }
@@ -102,7 +105,7 @@ static void unset_outdated_problems(void)
     cJSON_Delete(outdated_problems_chat_ids);
 }
 
-static void handle_updates(cJSON* updates, int_fast32_t *last_update_id)
+static void handle_updates(cJSON *updates, int_fast32_t *last_update_id, const int maintenance_mode)
 {
     const cJSON *result = cJSON_GetObjectItem(updates, "result");
     const int result_size = cJSON_GetArraySize(result);
@@ -121,12 +124,27 @@ static void handle_updates(cJSON* updates, int_fast32_t *last_update_id)
 
         if (pthread_create(&thread,
                            NULL,
-                           handle_message,
+                           maintenance_mode ? handle_message_in_maintenance_mode : handle_message,
                            cJSON_Duplicate(message, 1)))
             die("Failed to create thread for message handle");
 
         pthread_detach(thread);
     }
+}
+
+static void *handle_message_in_maintenance_mode(void *cjson_message)
+{
+    cJSON *message = (cJSON *) cjson_message;
+
+    const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(cJSON_GetObjectItem(message, "chat"), "id"));
+
+    send_message_with_keyboard(chat_id,
+                               EMOJI_FAILED " Извините, бот временно недоступен\n\n"
+                               "Проводятся технические работы. Пожалуйста, ожидайте!",
+                               "");
+
+    cJSON_Delete(message);
+    pthread_exit(NULL);
 }
 
 static void *handle_message(void *cjson_message)
@@ -146,7 +164,7 @@ static void *handle_message(void *cjson_message)
         {
             send_message_with_keyboard(chat_id,
                                        EMOJI_FAILED " Извините, ваш аккаунт заблокирован",
-                                       get_current_keyboard(chat_id));
+                                       "");
 
             cJSON_Delete(message);
             pthread_exit(NULL);
@@ -180,7 +198,7 @@ static void handle_problem(const int_fast64_t chat_id,
     {
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, я понимаю только текст",
-                                   NOKEYBOARD);
+                                   "");
         return;
     }
 
@@ -207,7 +225,7 @@ static void handle_problem(const int_fast64_t chat_id,
     {
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, ваша проблема слишком большая",
-                                   NOKEYBOARD);
+                                   "");
         return;
     }
 
@@ -237,7 +255,7 @@ static void handle_problem(const int_fast64_t chat_id,
                                        get_current_keyboard(chat_id));
             send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_INFO " Появилась новая проблема для проверки",
-                                       get_current_keyboard(ROOT_CHAT_ID));
+                                       "");
            return;
         }
     }
@@ -248,7 +266,7 @@ static void handle_problem(const int_fast64_t chat_id,
                                get_current_keyboard(chat_id));
     send_message_with_keyboard(ROOT_CHAT_ID,
                                EMOJI_INFO " Появилась новая проблема",
-                               get_current_keyboard(ROOT_CHAT_ID));
+                               "");
 }
 
 static void handle_command(const int_fast64_t chat_id,
@@ -260,7 +278,7 @@ static void handle_command(const int_fast64_t chat_id,
     {
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, я понимаю только текст",
-                                   get_current_keyboard(chat_id));
+                                   "");
         return;
     }
 
@@ -291,11 +309,11 @@ static void handle_command(const int_fast64_t chat_id,
     else if (!strcmp(command, COMMAND_CANCEL))
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, вы не описываете проблему",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, я не знаю такого действия",
-                                   get_current_keyboard(chat_id));
+                                   "");
 }
 
 static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_root_user)
@@ -303,7 +321,7 @@ static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
     {
         cJSON *problems = get_problems(1, 0, 1);
@@ -312,7 +330,7 @@ static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_
         if (!problems_size)
             send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_OK " Проблем на удержании не найдено",
-                                       get_current_keyboard(ROOT_CHAT_ID));
+                                       "");
         else
             for (int i = 0; i < problems_size; ++i)
                 send_message_with_keyboard(ROOT_CHAT_ID,
@@ -328,7 +346,7 @@ static void handle_approve_command(const int_fast64_t chat_id, const int is_root
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
     {
         while (*arg == ' ')
@@ -337,7 +355,7 @@ static void handle_approve_command(const int_fast64_t chat_id, const int is_root
         if (!*arg)
             send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_FAILED " Извините, вы не указали id",
-                                       get_current_keyboard(ROOT_CHAT_ID));
+                                       "");
         else
         {
             char *end;
@@ -346,11 +364,11 @@ static void handle_approve_command(const int_fast64_t chat_id, const int is_root
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, указанный id некорректен",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, проблема не удерживается",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             else
             {
                 set_state(target_chat_id, "problem_pending_state", 0);
@@ -364,10 +382,10 @@ static void handle_approve_command(const int_fast64_t chat_id, const int is_root
                 send_message_with_keyboard(target_chat_id,
                                            EMOJI_OK " Ваша проблема снята с удержания и будет автоматически закрыта через 21 день\n\n"
                                            "Надеюсь вам помогут как можно быстрее!",
-                                           get_current_keyboard(target_chat_id));
+                                           "");
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_OK " Проблема снята с удержания",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             }
         }
     }
@@ -378,7 +396,7 @@ static void handle_banlist_command(const int_fast64_t chat_id, const int is_root
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
     {
         cJSON *problems = get_problems(1, 1, 0);
@@ -387,7 +405,7 @@ static void handle_banlist_command(const int_fast64_t chat_id, const int is_root
         if (!problems_size)
             send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_OK " Проблем заблокированных пользователей не найдено",
-                                       get_current_keyboard(ROOT_CHAT_ID));
+                                       "");
         else
             for (int i = 0; i < problems_size; ++i)
                 send_message_with_keyboard(ROOT_CHAT_ID,
@@ -403,7 +421,7 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
     {
         while (*arg == ' ')
@@ -412,7 +430,7 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
         if (!*arg)
             send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_FAILED " Извините, вы не указали id",
-                                       get_current_keyboard(ROOT_CHAT_ID));
+                                       "");
         else
         {
             char *end;
@@ -421,15 +439,15 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, указанный id некорректен",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             else if (target_chat_id == ROOT_CHAT_ID)
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, вы не можете заблокировать сами себя",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             else if (get_state(target_chat_id, "account_ban_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, пользователь уже заблокирован",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             else
             {
                 set_state(target_chat_id, "account_ban_state", 1);
@@ -444,10 +462,10 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
 
                 send_message_with_keyboard(target_chat_id,
                                            EMOJI_ATTENTION " Вы были заблокированы",
-                                           get_current_keyboard(target_chat_id));
+                                           "");
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_OK " Пользователь заблокирован",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             }
         }
     }
@@ -458,7 +476,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
     if (!is_root_user)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
     {
         while (*arg == ' ')
@@ -467,7 +485,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
         if (!*arg)
             send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_FAILED " Извините, вы не указали id",
-                                       get_current_keyboard(ROOT_CHAT_ID));
+                                       "");
         else
         {
             char *end;
@@ -476,11 +494,11 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, указанный id некорректен",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             else if (!get_state(target_chat_id, "account_ban_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, пользователь не заблокирован",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             else
             {
                 if (has_problem(target_chat_id))
@@ -499,7 +517,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
                                            get_current_keyboard(target_chat_id));
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_OK " Пользователь разблокирован",
-                                           get_current_keyboard(ROOT_CHAT_ID));
+                                           "");
             }
         }
     }
@@ -509,7 +527,7 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
 {
     char *start_message;
     const char *user_greeting   = EMOJI_GREETING " Добро пожаловать";
-    const char *bot_description = "Оказывайте поддержку и помощь другим, а также получайте решения собственных проблем.";
+    const char *bot_description = "Оказывайте поддержку и помощь другим, а также получайте решения собственных проблем!";
 
     if (!username)
     {
@@ -571,14 +589,14 @@ static void handle_helpme_command(const int_fast64_t chat_id, const char *userna
     if (has_problem(chat_id))
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, вы уже описали вашу проблему",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
     {
         if (!username)
             send_message_with_keyboard(chat_id,
                                        EMOJI_FAILED " Извините, для этой функции вам нужно "
                                        "создать имя пользователя в настройках Telegram",
-                                       get_current_keyboard(chat_id));
+                                       "");
         else
         {
             set_state(chat_id, "problem_description_state", 1);
@@ -597,7 +615,7 @@ static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_
     if (!problems_size)
         send_message_with_keyboard(chat_id,
                                    EMOJI_OK " Пока что никто не нуждается в помощи",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
         for (int i = 0; i < problems_size; ++i)
             send_message_with_keyboard(chat_id,
@@ -612,13 +630,13 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
     if (!has_problem(chat_id))
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас нет проблем для закрытия",
-                                   get_current_keyboard(chat_id));
+                                   "");
     else
     {
         if (get_state(chat_id, "problem_pending_state"))
             send_message_with_keyboard(chat_id,
                                        EMOJI_FAILED " Извините, вы не можете закрыть проблему, которая находится на удержании",
-                                       get_current_keyboard(chat_id));
+                                       "");
         else
         {
             unset_problem(chat_id);

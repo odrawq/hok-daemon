@@ -45,6 +45,8 @@ static void check_user(void);
 static void daemonize(void);
 static void handle_signal(const int signal);
 
+static int maintenance_mode = 0;
+
 int main(int argc, char **argv)
 {
     handle_args(argc, argv);
@@ -57,9 +59,11 @@ int main(int argc, char **argv)
     signal(SIGSEGV, handle_signal);
 
     init_requests_module();
-    init_data_module();
 
-    start_bot();
+    if (!maintenance_mode)
+        init_data_module();
+
+    start_bot(maintenance_mode);
 }
 
 static void handle_args(int argc, char **argv)
@@ -71,8 +75,9 @@ static void handle_args(int argc, char **argv)
 
     static const struct option long_options[] =
     {
-        {"help",    no_argument, 0, 'h'},
-        {"version", no_argument, 0, 'v'},
+        {"help",        no_argument, 0, 'h'},
+        {"version",     no_argument, 0, 'v'},
+        {"maintenance", no_argument, 0, 'm'},
         {0, 0, 0, 0}
     };
 
@@ -80,7 +85,7 @@ static void handle_args(int argc, char **argv)
 
     while ((opt = getopt_long(argc,
                               argv,
-                              "+hv",
+                              "+hvm",
                               long_options,
                               NULL)) != -1)
     {
@@ -90,8 +95,9 @@ static void handle_args(int argc, char **argv)
                 printf("Usage: hok-daemon [options]\n"
                        "\nDaemon for controlling the 'Hands of kindness' telegram bot.\n"
                        "\nOptions:\n"
-                       "  -h, --help       print this help and exit\n"
-                       "  -v, --version    print the hok-daemon version and exit\n"
+                       "  -h, --help           print this help and exit\n"
+                       "  -v, --version        print the hok-daemon version and exit\n"
+                       "  -m, --maintenance    start the hok-daemon in maintenance mode\n"
                        "\nTo start hok-daemon, start it under the hok-daemon user.\n"
                        "\nPlease send bug reports to: <odrawq.qwardo@gmail.com>\n");
                 exit(EXIT_SUCCESS);
@@ -102,6 +108,10 @@ static void handle_args(int argc, char **argv)
                        MINOR_VERSION,
                        PATCH_VERSION);
                 exit(EXIT_SUCCESS);
+
+            case 'm':
+                maintenance_mode = 1;
+                break;
 
             case '?':
                 if (optopt)
