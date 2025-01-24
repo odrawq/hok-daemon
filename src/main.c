@@ -93,7 +93,7 @@ static void handle_args(int argc, char **argv)
         {
             case 'h':
                 printf("Usage: hok-daemon [options]\n"
-                       "\nDaemon for controlling the 'Hands of kindness' telegram bot.\n"
+                       "\nDaemon for controlling the 'Hands of Kindness' telegram bot.\n"
                        "\nOptions:\n"
                        "  -h, --help           print this help and exit\n"
                        "  -v, --version        print the hok-daemon version and exit\n"
