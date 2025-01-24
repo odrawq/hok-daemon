@@ -370,6 +370,10 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, указанный id некорректен",
                                            "");
+            else if (!has_problem(target_chat_id))
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, у пользователя нет проблемы",
+                                           "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, проблема не удерживается",
@@ -419,6 +423,10 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, указанный id некорректен",
+                                           "");
+            else if (!has_problem(target_chat_id))
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, у пользователя нет проблемы",
                                            "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
