@@ -619,19 +619,19 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
     if (is_root_user)
     {
         const char *message_for_root_user = "\n\n" EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ"
-                                            "\n\n" EMOJI_INFO " Вывести проблемы на удержании:\n"
+                                            "\n\n" EMOJI_INFO " Вывести проблемы на удержании\n"
                                             "/pendinglist"
-                                            "\n\n" EMOJI_INFO " Снять проблему с удержания:\n"
+                                            "\n\n" EMOJI_INFO " Снять проблему с удержания\n"
                                             "/confirm <id>"
-                                            "\n\n" EMOJI_INFO " Отклонить проблему на удержании:\n"
+                                            "\n\n" EMOJI_INFO " Отклонить проблему на удержании\n"
                                             "/decline <id>"
-                                            "\n\n" EMOJI_INFO " Вывести проблемы заблокированных пользователей:\n"
+                                            "\n\n" EMOJI_INFO " Вывести проблемы заблокированных пользователей\n"
                                             "/banlist"
-                                            "\n\n" EMOJI_INFO " Заблокировать пользователя:\n"
+                                            "\n\n" EMOJI_INFO " Заблокировать пользователя\n"
                                             "/ban <id>"
-                                            "\n\n" EMOJI_INFO " Разблокировать пользователя:\n"
+                                            "\n\n" EMOJI_INFO " Разблокировать пользователя\n"
                                             "/unban <id>"
-                                            "\n\n" EMOJI_INFO " Вместо <id> нужно указать идентификатор пользователя. "
+                                            "\n\nВместо <id> нужно указать идентификатор пользователя. "
                                             "Идентификатор находится перед проблемой пользователя в круглых скобках.";
 
         start_message = realloc(start_message, strlen(start_message) + strlen(message_for_root_user) + 1);
