@@ -118,10 +118,10 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems, const
         const int account_ban_state = get_state(chat_id, "account_ban_state");
         const int problem_pending_state = get_state(chat_id, "problem_pending_state");
 
-        if ((!banned_problems && !pending_problems && (account_ban_state || problem_pending_state)) ||
-            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)) ||
-            (!banned_problems && pending_problems && !problem_pending_state) ||
-            (banned_problems && !pending_problems && !account_ban_state))
+        if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||
+            (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||
+            (!banned_problems && !pending_problems && !(!account_ban_state && !problem_pending_state)) ||
+            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)))
         {
             user_data = user_data->next;
             continue;
