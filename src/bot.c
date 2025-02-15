@@ -599,52 +599,47 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
         if (!start_message)
             die("Failed to allocate memory for start message");
 
-        strcpy(start_message, user_greeting);
+        sprintf(start_message,
+                "%s\n\n%s",
+                user_greeting,
+                bot_description);
     }
     else
     {
-        start_message = malloc(strlen(user_greeting) + strlen(bot_description) + strlen(username) + 6);
+        start_message = malloc(strlen(user_greeting) + strlen(username) + strlen(bot_description) + 6);
 
         if (!start_message)
             die("Failed to allocate memory for start message");
 
-        strcpy(start_message, user_greeting);
-        strcat(start_message, ", @");
-        strcat(start_message, username);
-    }
-
-    strcat(start_message, "\n\n");
-    strcat(start_message, bot_description);
-
-    if (is_root_user)
-    {
-        const char *message_for_root_user = "\n\n" EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ"
-                                            "\n\n" EMOJI_INFO " Вывести проблемы на удержании\n"
-                                            "/pendinglist"
-                                            "\n\n" EMOJI_INFO " Снять проблему с удержания\n"
-                                            "/confirm <id>"
-                                            "\n\n" EMOJI_INFO " Отклонить проблему на удержании\n"
-                                            "/decline <id>"
-                                            "\n\n" EMOJI_INFO " Вывести проблемы заблокированных пользователей\n"
-                                            "/banlist"
-                                            "\n\n" EMOJI_INFO " Заблокировать пользователя\n"
-                                            "/ban <id>"
-                                            "\n\n" EMOJI_INFO " Разблокировать пользователя\n"
-                                            "/unban <id>"
-                                            "\n\nВместо <id> нужно указать идентификатор пользователя. "
-                                            "Идентификатор находится перед проблемой пользователя в круглых скобках.";
-
-        start_message = realloc(start_message, strlen(start_message) + strlen(message_for_root_user) + 1);
-
-        if (!start_message)
-            die("Failed to reallocate memory for start message");
-
-        strcat(start_message, message_for_root_user);
+        sprintf(start_message,
+                "%s, @%s\n\n%s",
+                user_greeting,
+                username,
+                bot_description);
     }
 
     send_message_with_keyboard(chat_id,
                                start_message,
                                get_current_keyboard(chat_id));
+
+    if (is_root_user)
+        send_message_with_keyboard(ROOT_CHAT_ID,
+                                   EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ\n\n"
+                                   EMOJI_INFO " Вывести проблемы для проверки\n"
+                                   "/pendinglist\n\n"
+                                   EMOJI_INFO " Принять проблему\n"
+                                   "/confirm <id>\n\n"
+                                   EMOJI_INFO " Отклонить проблему\n"
+                                   "/decline <id>\n\n"
+                                   EMOJI_INFO " Вывести проблемы заблокированных пользователей\n"
+                                   "/banlist\n\n"
+                                   EMOJI_INFO " Заблокировать пользователя\n"
+                                   "/ban <id>\n\n"
+                                   EMOJI_INFO " Разблокировать пользователя\n"
+                                   "/unban <id>\n\n"
+                                   "Вместо <id> нужно указать идентификатор пользователя. "
+                                   "Идентификатор находится перед проблемой пользователя в круглых скобках.",
+                                   "");
 
     free(start_message);
 }
