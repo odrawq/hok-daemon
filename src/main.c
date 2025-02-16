@@ -125,7 +125,7 @@ static void handle_args(int argc, char **argv)
                             "Try 'hok-daemon -h' for more information.\n",
                             argv[optind - 1]);
 
-                exit(EXIT_FAILURE);
+                // Fall through.
 
             default:
                 exit(EXIT_FAILURE);
@@ -142,8 +142,8 @@ static void handle_args(int argc, char **argv)
 }
 
 /*
- * Checks the user under which the process is started.
- * If user is not 'hok-daemon', exits the process.
+ * Checks user under which process runs.
+ * If user is not hok-daemon, terminates process.
  */
 static void check_user(void)
 {

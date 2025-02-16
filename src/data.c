@@ -39,48 +39,48 @@ static void save_users_data(void);
 static cJSON *get_or_create_user_data(const int_fast64_t chat_id, const int save_on_creation);
 
 static cJSON *users_data_cache;
-static pthread_mutex_t users_data_cache_lock;
-static pthread_mutexattr_t attr;
+static pthread_mutex_t users_data_cache_mutex;
+static pthread_mutexattr_t users_data_cache_mutex_attr;
 
 void init_data_module(void)
 {
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&users_data_cache_lock, &attr);
+    pthread_mutexattr_init(&users_data_cache_mutex_attr);
+    pthread_mutexattr_settype(&users_data_cache_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&users_data_cache_mutex, &users_data_cache_mutex_attr);
     load_users_data();
 }
 
 int get_state(const int_fast64_t chat_id, const char *state_name)
 {
-    pthread_mutex_lock(&users_data_cache_lock);
+    pthread_mutex_lock(&users_data_cache_mutex);
     const cJSON *state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), state_name);
-    pthread_mutex_unlock(&users_data_cache_lock);
+    pthread_mutex_unlock(&users_data_cache_mutex);
 
     return state->valueint;
 }
 
 void set_state(const int_fast64_t chat_id, const char *state_name, const int state_value)
 {
-    pthread_mutex_lock(&users_data_cache_lock);
+    pthread_mutex_lock(&users_data_cache_mutex);
 
     cJSON_SetIntValue(cJSON_GetObjectItem(get_or_create_user_data(chat_id, 0), state_name), state_value);
     save_users_data();
 
-    pthread_mutex_unlock(&users_data_cache_lock);
+    pthread_mutex_unlock(&users_data_cache_mutex);
 }
 
 int has_problem(const int_fast64_t chat_id)
 {
-    pthread_mutex_lock(&users_data_cache_lock);
+    pthread_mutex_lock(&users_data_cache_mutex);
     const int state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), "problem") ? 1 : 0;
-    pthread_mutex_unlock(&users_data_cache_lock);
+    pthread_mutex_unlock(&users_data_cache_mutex);
 
     return state;
 }
 
 void set_problem(const int_fast64_t chat_id, const char *problem)
 {
-    pthread_mutex_lock(&users_data_cache_lock);
+    pthread_mutex_lock(&users_data_cache_mutex);
 
     const time_t current_time = time(NULL);
     cJSON *user_problem = cJSON_CreateObject();
@@ -91,22 +91,22 @@ void set_problem(const int_fast64_t chat_id, const char *problem)
 
     save_users_data();
 
-    pthread_mutex_unlock(&users_data_cache_lock);
+    pthread_mutex_unlock(&users_data_cache_mutex);
 }
 
 void unset_problem(const int_fast64_t chat_id)
 {
-    pthread_mutex_lock(&users_data_cache_lock);
+    pthread_mutex_lock(&users_data_cache_mutex);
 
     cJSON_DeleteItemFromObject(get_or_create_user_data(chat_id, 0), "problem");
     save_users_data();
 
-    pthread_mutex_unlock(&users_data_cache_lock);
+    pthread_mutex_unlock(&users_data_cache_mutex);
 }
 
 cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems)
 {
-    pthread_mutex_lock(&users_data_cache_lock);
+    pthread_mutex_lock(&users_data_cache_mutex);
 
     cJSON *problems = cJSON_CreateArray();
     cJSON *user_data = users_data_cache->child;
@@ -150,13 +150,13 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems, const
         user_data = user_data->next;
     }
 
-    pthread_mutex_unlock(&users_data_cache_lock);
+    pthread_mutex_unlock(&users_data_cache_mutex);
     return problems;
 }
 
 cJSON *get_outdated_problems_chat_ids(void)
 {
-    pthread_mutex_lock(&users_data_cache_lock);
+    pthread_mutex_lock(&users_data_cache_mutex);
 
     cJSON *outdated_problems_chat_ids = cJSON_CreateArray();
     cJSON *user_data = users_data_cache->child;
@@ -186,10 +186,13 @@ cJSON *get_outdated_problems_chat_ids(void)
         user_data = user_data->next;
     }
 
-    pthread_mutex_unlock(&users_data_cache_lock);
+    pthread_mutex_unlock(&users_data_cache_mutex);
     return outdated_problems_chat_ids;
 }
 
+/*
+ * Loads data from FILE_USERSDATA into users_data.
+ */
 static void load_users_data(void)
 {
     FILE *users_data_file = fopen(FILE_USERSDATA, "r");
@@ -224,6 +227,9 @@ static void load_users_data(void)
     users_data_cache = users_data;
 }
 
+/*
+ * Saves data from users_data into FILE_USERSDATA.
+ */
 static void save_users_data(void)
 {
     char *users_data_string = cJSON_Print(users_data_cache);

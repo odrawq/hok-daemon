@@ -29,50 +29,41 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
-#include "requests.h"
-#include "data.h"
 #include "log.h"
 
 static char *get_current_timestamp(void);
 
-/*
- * Prints a formatted string to the FILE_INFOLOG with timestamp.
- */
 void report(const char *fmt, ...)
 {
-    FILE *file = fopen(FILE_INFOLOG, "a");
+    FILE *info_log = fopen(FILE_INFOLOG, "a");
 
-    if (!file)
+    if (!info_log)
         die("Failed to open %s", FILE_INFOLOG);
 
-    fprintf(file, "%s ", get_current_timestamp());
+    fprintf(info_log, "%s ", get_current_timestamp());
     va_list argp;
     va_start(argp, fmt);
-    vfprintf(file, fmt, argp);
+    vfprintf(info_log, fmt, argp);
     va_end(argp);
-    fputc('\n', file);
+    fputc('\n', info_log);
 
-    fclose(file);
+    fclose(info_log);
 }
 
-/*
- * Prints a formatted string to the FILE_ERRORLOG with timestamp and
- * exits the daemon with EXIT_FAILURE status.
- */
 void die(const char *fmt, ...)
 {
-    FILE *file = fopen(FILE_ERRORLOG, "a");
+    FILE *error_log = fopen(FILE_ERRORLOG, "a");
 
-    if (file)
+    if (error_log)
     {
-        fprintf(file, "%s ", get_current_timestamp());
+        fprintf(error_log, "%s ", get_current_timestamp());
         va_list argp;
         va_start(argp, fmt);
-        vfprintf(file, fmt, argp);
+        vfprintf(error_log, fmt, argp);
         va_end(argp);
-        fputc('\n', file);
+        fputc('\n', error_log);
 
-        fclose(file);
+        fclose(error_log);
     }
 
     exit(EXIT_FAILURE);
