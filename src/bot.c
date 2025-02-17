@@ -334,7 +334,7 @@ static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_
 
         if (!problems_size)
             send_message_with_keyboard(ROOT_CHAT_ID,
-                                       EMOJI_OK " Проблем на удержании не найдено",
+                                       EMOJI_OK " Проблем для проверки не найдено",
                                        "");
         else
             for (int i = 0; i < problems_size; ++i)
@@ -376,7 +376,7 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
                                            "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, проблема не удерживается",
+                                           EMOJI_FAILED " Извините, проблема уже существует и не может быть одобрена",
                                            "");
             else
             {
@@ -389,11 +389,11 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
                        target_chat_id);
 
                 send_message_with_keyboard(target_chat_id,
-                                           EMOJI_OK " Ваша проблема снята с удержания и будет автоматически закрыта через 21 день\n\n"
+                                           EMOJI_OK " Ваша проблема одобрена и будет автоматически закрыта через 21 день\n\n"
                                            "Надеюсь вам помогут как можно быстрее!",
                                            "");
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_OK " Проблема снята с удержания",
+                                           EMOJI_OK " Проблема одобрена",
                                            "");
             }
         }
@@ -430,7 +430,7 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
                                            "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, проблема не удерживается",
+                                           EMOJI_FAILED " Извините, проблема уже существует и не может быть отклонена",
                                            "");
             else
             {
@@ -627,7 +627,7 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
                                    EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ\n\n"
                                    EMOJI_INFO " Вывести проблемы для проверки\n"
                                    "/pendinglist\n\n"
-                                   EMOJI_INFO " Принять проблему\n"
+                                   EMOJI_INFO " Одобрить проблему\n"
                                    "/confirm <id>\n\n"
                                    EMOJI_INFO " Отклонить проблему\n"
                                    "/decline <id>\n\n"
@@ -695,7 +695,7 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
     {
         if (get_state(chat_id, "problem_pending_state"))
             send_message_with_keyboard(chat_id,
-                                       EMOJI_FAILED " Извините, вы не можете закрыть проблему, которая находится на удержании",
+                                       EMOJI_FAILED " Извините, вы не можете закрыть проблему, которая находится на проверке",
                                        "");
         else
         {
