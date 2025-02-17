@@ -135,7 +135,7 @@ static size_t write_callback(void *contents,
 {
     const size_t real_size = size * nmemb;
 
-    struct ServerResponse *response = (struct ServerResponse *) userp;
+    struct ServerResponse *response = userp;
     response->data = realloc(response->data, response->size + real_size + 1);
 
     if (!response->data)

@@ -135,7 +135,7 @@ static void handle_updates(cJSON *updates, int_fast32_t *last_update_id, const i
 
 static void *handle_message_in_maintenance_mode(void *cjson_message)
 {
-    cJSON *message = (cJSON *) cjson_message;
+    cJSON *message = cjson_message;
 
     const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(cJSON_GetObjectItem(message, "chat"), "id"));
 
@@ -150,7 +150,7 @@ static void *handle_message_in_maintenance_mode(void *cjson_message)
 
 static void *handle_message(void *cjson_message)
 {
-    cJSON *message = (cJSON *) cjson_message;
+    cJSON *message = cjson_message;
 
     const cJSON *chat = cJSON_GetObjectItem(message, "chat");
     const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(chat, "id"));
