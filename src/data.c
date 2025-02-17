@@ -191,7 +191,7 @@ cJSON *get_outdated_problems_chat_ids(void)
 }
 
 /*
- * Loads data from FILE_USERSDATA into users_data.
+ * Loads data from FILE_USERSDATA into users_data_cache.
  */
 static void load_users_data(void)
 {
@@ -228,7 +228,7 @@ static void load_users_data(void)
 }
 
 /*
- * Saves data from users_data into FILE_USERSDATA.
+ * Saves data from users_data_cache into FILE_USERSDATA.
  */
 static void save_users_data(void)
 {
