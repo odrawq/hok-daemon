@@ -93,6 +93,49 @@ cJSON *get_updates(const int_fast32_t update_id)
     return updates;
 }
 
+cJSON *get_chat(const int_fast64_t chat_id)
+{
+    CURL *curl = curl_easy_init();
+
+    if (!curl)
+        die("Failed to initialize curl");
+
+    struct ServerResponse response;
+    response.data = malloc(1);
+
+    if (!response.data)
+        die("Failed to allocate memory for server response");
+
+    response.size = 0;
+
+    char url[MAX_URL_SIZE];
+    sprintf(url,
+            "%s/getChat?chat_id=%" PRIdFAST64,
+            BOT_API_URL,
+            chat_id);
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+    const CURLcode code = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+    if (code != CURLE_OK)
+    {
+        free(response.data);
+        return NULL;
+    }
+
+    cJSON *chat = cJSON_Parse(response.data);
+
+    if (!chat)
+        die("Failed to parse chat");
+
+    free(response.data);
+    return chat;
+}
+
 void send_message_with_keyboard(const int_fast64_t chat_id, const char *message, const char *keyboard)
 {
     CURL *curl = curl_easy_init();

@@ -37,8 +37,9 @@
 #include "data.h"
 #include "bot.h"
 
-static void unset_outdated_problems(void);
-static void handle_updates(cJSON *updates, int_fast32_t *last_update_id, const int maintenance_mode);
+static void *unset_outdated_problems(void *_);
+static void *update_problems_usernames(void *_);
+static void handle_updates(cJSON *updates, const int maintenance_mode);
 static void *handle_message_in_maintenance_mode(void *cjson_message);
 static void *handle_message(void *cjson_message);
 static void handle_problem(const int_fast64_t chat_id,
@@ -60,32 +61,64 @@ static void handle_helpme_command(const int_fast64_t chat_id, const char *userna
 static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user);
 static void handle_closeproblem_command(const int_fast64_t chat_id);
 
+static volatile int unset_outdated_problems_thread_running = 0;
+static volatile int update_problems_usernames_thread_running = 0;
+static int_fast32_t last_update_id = 0;
+
 void start_bot(const int maintenance_mode)
 {
-    int_fast32_t last_update_id = 0;
-
     for (;;)
     {
         if (!maintenance_mode)
-            unset_outdated_problems();
+        {
+            if (!unset_outdated_problems_thread_running)
+            {
+                pthread_t unset_outdated_problems_thread;
+
+                if (pthread_create(&unset_outdated_problems_thread,
+                                   NULL,
+                                   unset_outdated_problems,
+                                   NULL))
+                    die("Failed to create thread for unset outdated problems");
+                else
+                {
+                    unset_outdated_problems_thread_running = 1;
+                    pthread_detach(unset_outdated_problems_thread);
+                }
+            }
+
+            if (!update_problems_usernames_thread_running)
+            {
+                pthread_t update_problems_usernames_thread;
+
+                if (pthread_create(&update_problems_usernames_thread,
+                                               NULL,
+                                               update_problems_usernames,
+                                               NULL))
+                    die("Failed to create thread for set current problems usernames");
+                else
+                {
+                    update_problems_usernames_thread_running = 1;
+                    pthread_detach(update_problems_usernames_thread);
+                }
+            }
+        }
 
         cJSON *updates = get_updates(last_update_id);
 
         if (!updates)
             continue;
 
-        handle_updates(updates, &last_update_id, maintenance_mode);
+        handle_updates(updates, maintenance_mode);
         cJSON_Delete(updates);
     }
 }
 
-static void unset_outdated_problems(void)
+static void *unset_outdated_problems(void *_)
 {
+    (void) _;
+
     cJSON *outdated_problems_chat_ids = get_outdated_problems_chat_ids();
-
-    if (!outdated_problems_chat_ids)
-        return;
-
     const int outdated_problems_chat_ids_size = cJSON_GetArraySize(outdated_problems_chat_ids);
 
     for (int i = 0; i < outdated_problems_chat_ids_size; ++i)
@@ -98,15 +131,84 @@ static void unset_outdated_problems(void)
                chat_id);
 
         send_message_with_keyboard(chat_id,
-                                   EMOJI_ATTENTION " Извините, ваша проблема привысила временной лимит хранения и была закрыта\n\n"
+                                   EMOJI_ATTENTION " Ваша проблема привысила временной лимит хранения и была закрыта\n\n"
                                    "Если вам всё ещё нужна помощь, пожалуйста, опишите вашу проблему ещё раз!",
                                    get_current_keyboard(chat_id));
     }
 
     cJSON_Delete(outdated_problems_chat_ids);
+    unset_outdated_problems_thread_running = 0;
+    pthread_exit(NULL);
 }
 
-static void handle_updates(cJSON *updates, int_fast32_t *last_update_id, const int maintenance_mode)
+static void *update_problems_usernames(void *_)
+{
+    (void) _;
+
+    cJSON *problems = get_problems(1, 0, 0);
+    const int problems_size = cJSON_GetArraySize(problems);
+
+    for (int i = 0; i < problems_size; ++i)
+    {
+        int_fast64_t chat_id;
+        char username[MAX_USERNAME_SIZE + 1];
+        char problem[MAX_PROBLEM_SIZE + 1];
+
+        if (sscanf(cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
+                   "(%" SCNdFAST64 ") @%[^:]: %s",
+                   &chat_id,
+                   username,
+                   problem) != 3)
+            die("Failed to parse problem");
+
+        cJSON *chat = get_chat(chat_id);
+
+        if (!chat)
+            continue;
+
+        const char *current_username = cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetObjectItem(chat, "result"), "username"));
+
+        if (!current_username)
+        {
+            unset_problem(chat_id);
+
+            report("User %" PRIdFAST64
+                   " removed his username '%s'",
+                   chat_id,
+                   username);
+
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_ATTENTION " Ваша проблема была закрыта из-за удаления имени пользователя",
+                                       get_current_keyboard(chat_id));
+        }
+        else if (strcmp(username, current_username))
+        {
+            char username_with_problem[MAX_USERNAME_SIZE + MAX_PROBLEM_SIZE + 4];
+            sprintf(username_with_problem,
+                    "@%s: %s",
+                    current_username,
+                    problem);
+
+            unset_problem(chat_id);
+            set_problem(chat_id, username_with_problem);
+
+            report("User %" PRIdFAST64
+                   " changed his username from '%s'"
+                   " to '%s'",
+                   chat_id,
+                   username,
+                   current_username);
+        }
+
+        cJSON_Delete(chat);
+    }
+
+    cJSON_Delete(problems);
+    update_problems_usernames_thread_running = 0;
+    pthread_exit(NULL);
+}
+
+static void handle_updates(cJSON *updates, const int maintenance_mode)
 {
     const cJSON *result = cJSON_GetObjectItem(updates, "result");
     const int result_size = cJSON_GetArraySize(result);
@@ -114,22 +216,22 @@ static void handle_updates(cJSON *updates, int_fast32_t *last_update_id, const i
     for (int i = 0; i < result_size; ++i)
     {
         const cJSON *update = cJSON_GetArrayItem(result, i);
-        *last_update_id = cJSON_GetNumberValue(cJSON_GetObjectItem(update, "update_id")) + 1;
+        last_update_id = cJSON_GetNumberValue(cJSON_GetObjectItem(update, "update_id")) + 1;
 
         const cJSON *message = cJSON_GetObjectItem(update, "message");
 
         if (!message)
             continue;
 
-        pthread_t thread;
+        pthread_t handle_message_thread;
 
-        if (pthread_create(&thread,
+        if (pthread_create(&handle_message_thread,
                            NULL,
                            maintenance_mode ? handle_message_in_maintenance_mode : handle_message,
                            cJSON_Duplicate(message, 1)))
-            die("Failed to create thread for message handle");
+            die("Failed to create thread for handle message");
 
-        pthread_detach(thread);
+        pthread_detach(handle_message_thread);
     }
 }
 
@@ -166,9 +268,7 @@ static void *handle_message(void *cjson_message)
             send_message_with_keyboard(chat_id,
                                        EMOJI_FAILED " Извините, ваш аккаунт заблокирован",
                                        "");
-
-            cJSON_Delete(message);
-            pthread_exit(NULL);
+            goto exit;
         }
     }
 
@@ -186,6 +286,7 @@ static void *handle_message(void *cjson_message)
                        username ? username->valuestring : NULL,
                        text ? text->valuestring : NULL);
 
+exit:
     cJSON_Delete(message);
     pthread_exit(NULL);
 }
@@ -376,7 +477,7 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
                                            "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, проблема уже существует и не может быть одобрена",
+                                           EMOJI_FAILED " Извините, уже существующая проблема не может быть одобрена",
                                            "");
             else
             {
@@ -430,7 +531,7 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
                                            "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, проблема уже существует и не может быть отклонена",
+                                           EMOJI_FAILED " Извините, уже существующая проблема не может быть отклонена",
                                            "");
             else
             {
@@ -689,7 +790,7 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
 {
     if (!has_problem(chat_id))
         send_message_with_keyboard(chat_id,
-                                   EMOJI_FAILED " Извините, у вас нет проблем для закрытия",
+                                   EMOJI_FAILED " Извините, у вас нет проблемы для закрытия",
                                    "");
     else
     {
