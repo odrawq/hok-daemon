@@ -92,9 +92,9 @@ void start_bot(const int maintenance_mode)
                 pthread_t update_problems_usernames_thread;
 
                 if (pthread_create(&update_problems_usernames_thread,
-                                               NULL,
-                                               update_problems_usernames,
-                                               NULL))
+                                   NULL,
+                                   update_problems_usernames,
+                                   NULL))
                     die("Failed to create thread for set current problems usernames");
                 else
                 {
@@ -155,7 +155,7 @@ static void *update_problems_usernames(void *_)
         char problem[MAX_PROBLEM_SIZE + 1];
 
         if (sscanf(cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
-                   "(%" SCNdFAST64 ") @%[^:]: %s",
+                   "(%" SCNdFAST64 ") @%[^:]: %[^\\0]",
                    &chat_id,
                    username,
                    problem) != 3)
