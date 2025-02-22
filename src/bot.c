@@ -358,7 +358,7 @@ static void handle_problem(const int_fast64_t chat_id,
             send_message_with_keyboard(ROOT_CHAT_ID,
                                        EMOJI_INFO " Появилась новая проблема для проверки",
                                        "");
-           return;
+            return;
         }
     }
 
@@ -691,35 +691,22 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
 
 static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username)
 {
-    char *start_message;
-    const char *user_greeting   = EMOJI_GREETING " Добро пожаловать";
+    const char *user_greeting = EMOJI_GREETING " Добро пожаловать";
     const char *bot_description = "Оказывайте поддержку и помощь другим, а также получайте решения собственных проблем!";
 
+    char start_message[strlen(user_greeting) + strlen(bot_description) + MAX_USERNAME_SIZE + 6];
+
     if (!username)
-    {
-        start_message = malloc(strlen(user_greeting) + strlen(bot_description) + 3);
-
-        if (!start_message)
-            die("Failed to allocate memory for start message");
-
         sprintf(start_message,
                 "%s\n\n%s",
                 user_greeting,
                 bot_description);
-    }
     else
-    {
-        start_message = malloc(strlen(user_greeting) + strlen(username) + strlen(bot_description) + 6);
-
-        if (!start_message)
-            die("Failed to allocate memory for start message");
-
         sprintf(start_message,
                 "%s, @%s\n\n%s",
                 user_greeting,
                 username,
                 bot_description);
-    }
 
     send_message_with_keyboard(chat_id,
                                start_message,
@@ -743,8 +730,6 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
                                    "Вместо <id> нужно указать идентификатор пользователя. "
                                    "Идентификатор находится перед проблемой пользователя в круглых скобках.",
                                    "");
-
-    free(start_message);
 }
 
 static void handle_helpme_command(const int_fast64_t chat_id, const char *username)
