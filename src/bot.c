@@ -127,7 +127,7 @@ static void *unset_outdated_problems(void *_)
         unset_problem(chat_id);
 
         report("User %" PRIdFAST64
-               " problem exceeded the storage time limit and automatically closed",
+               " problem exceeded the storage time limit and was closed",
                chat_id);
 
         send_message_with_keyboard(chat_id,
@@ -173,7 +173,7 @@ static void *update_problems_usernames(void *_)
             unset_problem(chat_id);
 
             report("User %" PRIdFAST64
-                   " removed his username '%s'",
+                   " removed his username '%s' and his problem was closed",
                    chat_id,
                    username);
 
