@@ -366,9 +366,11 @@ static void handle_problem(const int_fast64_t chat_id,
                                EMOJI_OK " Ваша проблема сохранена и будет автоматически закрыта через 21 день\n\n"
                                "Надеюсь вам помогут как можно быстрее!",
                                get_current_keyboard(chat_id));
-    send_message_with_keyboard(ROOT_CHAT_ID,
-                               EMOJI_INFO " Появилась новая проблема",
-                               "");
+
+    if (!is_root_user)
+        send_message_with_keyboard(ROOT_CHAT_ID,
+                                   EMOJI_INFO " Появилась новая проблема",
+                                   "");
 }
 
 static void handle_command(const int_fast64_t chat_id,
