@@ -38,18 +38,20 @@ ERROR_LOG_FILE  = error_log
 INFO_LOG_FILE   = info_log
 
 SRC_FILES := $(wildcard $(SRC_DIR)*.c)
-OBJ_FILES := $(patsubst $(SRC_DIR)%.c,$(BUILD_DIR)%.o,$(SRC_FILES))
+OBJ_FILES := $(patsubst $(SRC_DIR)%.c, $(BUILD_DIR)%.o, $(SRC_FILES))
 DEP_FILES := $(OBJ_FILES:.o=.d)
 
-.PHONY: build clean install uninstall
+.PHONY := build clean install uninstall purge
 
-build: $(BUILD_DIR)$(TARGET)
+build: $(BUILD_DIR) $(BUILD_DIR)$(TARGET)
+
+$(BUILD_DIR):
+	mkdir -p $@
 
 $(BUILD_DIR)$(TARGET): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS)
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c
-	@mkdir -p $(BUILD_DIR)
 	$(CC) -c $< -o $@ -MMD $(CFLAGS)
 
 -include $(DEP_FILES)
@@ -59,17 +61,18 @@ clean:
 
 install:
 	sudo cp $(BUILD_DIR)$(TARGET) $(BIN_DIR)
+
 	sudo mkdir -p $(LOG_DIR)
-	sudo touch $(LOG_DIR)$(ERROR_LOG_FILE)
-	sudo touch $(LOG_DIR)$(INFO_LOG_FILE)
+	sudo touch $(LOG_DIR)$(ERROR_LOG_FILE) $(LOG_DIR)$(INFO_LOG_FILE)
+
 	sudo mkdir -p $(DATA_DIR)
 
-	@if ! sudo test -f $(DATA_DIR)$(USERS_DATA_FILE); then \
+	if ! sudo test -f $(DATA_DIR)$(USERS_DATA_FILE); then \
 		sudo touch $(DATA_DIR)$(USERS_DATA_FILE); \
 		echo "{}" | sudo tee $(DATA_DIR)$(USERS_DATA_FILE) > /dev/null; \
 	fi
 
-	@if ! id -u $(TARGET) >/dev/null 2>&1; then \
+	if ! id -u $(TARGET) > /dev/null 2>&1; then \
 		sudo useradd -r -s /bin/false $(TARGET); \
 	fi
 
@@ -77,6 +80,11 @@ install:
 	sudo chmod 700 $(LOG_DIR) $(DATA_DIR)
 
 uninstall:
-	sudo rm $(BIN_DIR)$(TARGET)
+	sudo rm -f $(BIN_DIR)$(TARGET)
+
+purge: uninstall
 	sudo rm -rf $(LOG_DIR) $(DATA_DIR)
-	sudo userdel $(TARGET)
+
+	if id -u $(TARGET) > /dev/null 2>&1; then \
+		sudo userdel $(TARGET); \
+	fi
