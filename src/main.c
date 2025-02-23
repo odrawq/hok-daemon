@@ -53,7 +53,12 @@ int main(int argc, char **argv)
     check_user();
     daemonize();
 
-    report("Daemon started");
+    report("hok-daemon %d.%d.%d started (mode: %s, PID: %d)",
+           MAJOR_VERSION,
+           MINOR_VERSION,
+           PATCH_VERSION,
+           maintenance_mode ? "maintenance" : "default",
+           getpid());
 
     signal(SIGTERM, handle_signal);
     signal(SIGSEGV, handle_signal);
@@ -179,7 +184,12 @@ static void handle_signal(const int signal)
     switch (signal)
     {
         case SIGTERM:
-            report("Daemon terminated");
+            report("hok-daemon %d.%d.%d terminated (mode: %s, PID: %d)",
+                   MAJOR_VERSION,
+                   MINOR_VERSION,
+                   PATCH_VERSION,
+                   maintenance_mode ? "maintenance" : "default",
+                   getpid());
             exit(EXIT_SUCCESS);
 
         case SIGSEGV:

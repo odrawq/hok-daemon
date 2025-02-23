@@ -341,9 +341,11 @@ static void handle_problem(const int_fast64_t chat_id,
     set_problem(chat_id, username_with_problem);
 
     report("User %" PRIdFAST64
+           " with username '%s'"
            " created problem '%s'",
            chat_id,
-           username_with_problem);
+           username,
+           problem);
 
     if (get_state(chat_id, "problem_pending_state"))
     {
