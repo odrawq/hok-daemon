@@ -62,9 +62,13 @@ make clean
 ```
 
 ## Удаление
-Удалить hok-daemon:
+- Удалить hok-daemon:
 ```bash
 make uninstall
+```
+- Удалить hok-daemon вместе с данными пользователей и логами:
+```bash
+make purge
 ```
 
 ## Логи и данные
