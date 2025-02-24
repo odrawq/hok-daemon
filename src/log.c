@@ -25,6 +25,7 @@
  *                                                                            *
  ******************************************************************************/
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -33,34 +34,46 @@
 
 static char *get_current_timestamp(void);
 
+static pthread_mutex_t log_files_mutex;
+
 void report(const char *fmt, ...)
 {
+    pthread_mutex_lock(&log_files_mutex);
+
     FILE *info_log = fopen(FILE_INFOLOG, "a");
 
     if (!info_log)
         die("Failed to open %s", FILE_INFOLOG);
 
     fprintf(info_log, "%s ", get_current_timestamp());
+
     va_list argp;
     va_start(argp, fmt);
     vfprintf(info_log, fmt, argp);
     va_end(argp);
+
     fputc('\n', info_log);
 
     fclose(info_log);
+
+    pthread_mutex_unlock(&log_files_mutex);
 }
 
 void die(const char *fmt, ...)
 {
+    pthread_mutex_lock(&log_files_mutex);
+
     FILE *error_log = fopen(FILE_ERRORLOG, "a");
 
     if (error_log)
     {
         fprintf(error_log, "%s ", get_current_timestamp());
+
         va_list argp;
         va_start(argp, fmt);
         vfprintf(error_log, fmt, argp);
         va_end(argp);
+
         fputc('\n', error_log);
 
         fclose(error_log);
