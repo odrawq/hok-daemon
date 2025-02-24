@@ -79,7 +79,9 @@ void start_bot(const int maintenance_mode)
                                    NULL,
                                    unset_outdated_problems,
                                    NULL))
-                    die("Failed to create thread for unset outdated problems");
+                    die("%s: %s: failed to create unset_outdated_problems_thread",
+                        __BASE_FILE__,
+                        __func__);
                 else
                 {
                     unset_outdated_problems_thread_running = 1;
@@ -95,7 +97,9 @@ void start_bot(const int maintenance_mode)
                                    NULL,
                                    update_problems_usernames,
                                    NULL))
-                    die("Failed to create thread for set current problems usernames");
+                    die("%s: %s: failed to create update_problems_usernames_thread",
+                        __BASE_FILE__,
+                        __func__);
                 else
                 {
                     update_problems_usernames_thread_running = 1;
@@ -159,7 +163,9 @@ static void *update_problems_usernames(void *_)
                    &chat_id,
                    username,
                    problem) != 3)
-            die("Failed to parse problem");
+            die("%s: %s: failed to parse problem",
+                __BASE_FILE__,
+                __func__);
 
         cJSON *chat = get_chat(chat_id);
 
@@ -229,7 +235,9 @@ static void handle_updates(cJSON *updates, const int maintenance_mode)
                            NULL,
                            maintenance_mode ? handle_message_in_maintenance_mode : handle_message,
                            cJSON_Duplicate(message, 1)))
-            die("Failed to create thread for handle message");
+            die("%s: %s: failed to create handle_message_thread",
+                __BASE_FILE__,
+                __func__);
 
         pthread_detach(handle_message_thread);
     }

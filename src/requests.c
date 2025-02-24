@@ -55,13 +55,17 @@ cJSON *get_updates(const int_fast32_t update_id)
     CURL *curl = curl_easy_init();
 
     if (!curl)
-        die("Failed to initialize curl");
+        die("%s: %s: failed to initialize curl",
+            __BASE_FILE__,
+            __func__);
 
     struct ServerResponse response;
     response.data = malloc(1);
 
     if (!response.data)
-        die("Failed to allocate memory for server response");
+        die("%s: %s: failed to allocate memory for response.data",
+            __BASE_FILE__,
+            __func__);
 
     response.size = 0;
 
@@ -87,7 +91,9 @@ cJSON *get_updates(const int_fast32_t update_id)
     cJSON *updates = cJSON_Parse(response.data);
 
     if (!updates)
-        die("Failed to parse updates");
+        die("%s: %s: failed to parse response.data",
+            __BASE_FILE__,
+            __func__);
 
     free(response.data);
     return updates;
@@ -98,13 +104,17 @@ cJSON *get_chat(const int_fast64_t chat_id)
     CURL *curl = curl_easy_init();
 
     if (!curl)
-        die("Failed to initialize curl");
+        die("%s: %s: failed to initialize curl",
+            __BASE_FILE__,
+            __func__);
 
     struct ServerResponse response;
     response.data = malloc(1);
 
     if (!response.data)
-        die("Failed to allocate memory for server response");
+        die("%s: %s: failed to allocate memory for response.data",
+            __BASE_FILE__,
+            __func__);
 
     response.size = 0;
 
@@ -130,7 +140,9 @@ cJSON *get_chat(const int_fast64_t chat_id)
     cJSON *chat = cJSON_Parse(response.data);
 
     if (!chat)
-        die("Failed to parse chat");
+        die("%s: %s: failed to parse response.data",
+            __BASE_FILE__,
+            __func__);
 
     free(response.data);
     return chat;
@@ -141,12 +153,16 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
     CURL *curl = curl_easy_init();
 
     if (!curl)
-        die("Failed to initialize curl");
+        die("%s: %s: failed to initialize curl",
+            __BASE_FILE__,
+            __func__);
 
     char *encoded_message = curl_easy_escape(curl, message, 0);
 
     if (!encoded_message)
-        die("Failed to URL encode message");
+        die("%s: %s: failed to escape message",
+            __BASE_FILE__,
+            __func__);
 
     char post_fields[MAX_POSTFIELDS_SIZE];
     sprintf(post_fields,
@@ -182,7 +198,9 @@ static size_t write_callback(void *contents,
     response->data = realloc(response->data, response->size + real_size + 1);
 
     if (!response->data)
-        die("Failed to reallocate memory for server response");
+        die("%s: %s: failed to reallocate memory for response->data",
+            __BASE_FILE__,
+            __func__);
 
     memcpy(&(response->data[response->size]),
            contents,

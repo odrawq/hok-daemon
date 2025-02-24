@@ -198,7 +198,10 @@ static void load_users_data(void)
     FILE *users_data_file = fopen(FILE_USERSDATA, "r");
 
     if (!users_data_file)
-        die("Failed to open %s", FILE_USERSDATA);
+        die("%s: %s: failed to open %s",
+            __BASE_FILE__,
+            __func__,
+            FILE_USERSDATA);
 
     fseek(users_data_file, 0, SEEK_END);
     const size_t users_data_file_size = ftell(users_data_file);
@@ -207,13 +210,18 @@ static void load_users_data(void)
     char *users_data_string = malloc(users_data_file_size + 1);
 
     if (!users_data_string)
-        die("Failed to allocate memory for users data");
+        die("%s: %s: failed to allocate memory for users_data_string",
+            __BASE_FILE__,
+            __func__);
 
     if (fread(users_data_string,
               1,
               users_data_file_size,
               users_data_file) != users_data_file_size)
-        die("Failed to read data from %s", FILE_USERSDATA);
+        die("%s: %s: failed to read data from %s",
+            __BASE_FILE__,
+            __func__,
+            FILE_USERSDATA);
 
     fclose(users_data_file);
 
@@ -221,7 +229,9 @@ static void load_users_data(void)
     cJSON *users_data = cJSON_Parse(users_data_string);
 
     if (!users_data)
-        die("Failed to parse users data");
+        die("%s: %s: failed to parse users_data_string",
+            __BASE_FILE__,
+            __func__);
 
     free(users_data_string);
     users_data_cache = users_data;
@@ -235,12 +245,15 @@ static void save_users_data(void)
     char *users_data_string = cJSON_Print(users_data_cache);
 
     if (!users_data_string)
-        die("Failed to get users data cache");
+        die("%s: %s: failed to print users_data_cache");
 
     FILE *users_data_file = fopen(FILE_USERSDATA, "w");
 
     if (!users_data_file)
-        die("Failed to open %s", FILE_USERSDATA);
+        die("%s: %s: failed to open %s",
+            __BASE_FILE__,
+            __func__,
+            FILE_USERSDATA);
 
     fprintf(users_data_file, "%s", users_data_string);
 

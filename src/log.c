@@ -43,7 +43,10 @@ void report(const char *fmt, ...)
     FILE *info_log = fopen(FILE_INFOLOG, "a");
 
     if (!info_log)
-        die("Failed to open %s", FILE_INFOLOG);
+        die("%s: %s: failed to open %s",
+            __BASE_FILE__,
+            __func__,
+            FILE_INFOLOG);
 
     fprintf(info_log, "%s ", get_current_timestamp());
 
