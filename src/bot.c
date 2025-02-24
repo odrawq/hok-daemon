@@ -138,7 +138,7 @@ static void *unset_outdated_problems(void *_)
 
     cJSON_Delete(outdated_problems_chat_ids);
     unset_outdated_problems_thread_running = 0;
-    pthread_exit(NULL);
+    return NULL;
 }
 
 static void *update_problems_usernames(void *_)
@@ -205,7 +205,7 @@ static void *update_problems_usernames(void *_)
 
     cJSON_Delete(problems);
     update_problems_usernames_thread_running = 0;
-    pthread_exit(NULL);
+    return NULL;
 }
 
 static void handle_updates(cJSON *updates, const int maintenance_mode)
@@ -247,7 +247,7 @@ static void *handle_message_in_maintenance_mode(void *cjson_message)
                                "");
 
     cJSON_Delete(message);
-    pthread_exit(NULL);
+    return NULL;
 }
 
 static void *handle_message(void *cjson_message)
@@ -288,7 +288,7 @@ static void *handle_message(void *cjson_message)
 
 exit:
     cJSON_Delete(message);
-    pthread_exit(NULL);
+    return NULL;
 }
 
 static void handle_problem(const int_fast64_t chat_id,
