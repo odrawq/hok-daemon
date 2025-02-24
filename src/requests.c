@@ -39,11 +39,12 @@ static size_t write_callback(void *contents,
                              const size_t nmemb,
                              void *userp);
 
-struct ServerResponse
+typedef struct
 {
     char *data;
     size_t size;
-};
+}
+ServerResponse;
 
 void init_requests_module(void)
 {
@@ -59,7 +60,7 @@ cJSON *get_updates(const int_fast32_t update_id)
             __BASE_FILE__,
             __func__);
 
-    struct ServerResponse response;
+    ServerResponse response;
     response.data = malloc(1);
 
     if (!response.data)
@@ -108,7 +109,7 @@ cJSON *get_chat(const int_fast64_t chat_id)
             __BASE_FILE__,
             __func__);
 
-    struct ServerResponse response;
+    ServerResponse response;
     response.data = malloc(1);
 
     if (!response.data)
@@ -194,7 +195,7 @@ static size_t write_callback(void *contents,
 {
     const size_t real_size = size * nmemb;
 
-    struct ServerResponse *response = userp;
+    ServerResponse *response = userp;
     response->data = realloc(response->data, response->size + real_size + 1);
 
     if (!response->data)
