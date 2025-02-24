@@ -51,12 +51,11 @@ static int maintenance_mode = 0;
 
 int main(int argc, char **argv)
 {
-    pid = getpid();
-
     handle_args(argc, argv);
     check_user();
     daemonize();
 
+    pid = getpid();
     mode = maintenance_mode ? "maintenance" : "default";
 
     report("hok-daemon %d.%d.%d started (mode: %s, PID: %d)",
