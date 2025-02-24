@@ -45,20 +45,26 @@ static void check_user(void);
 static void daemonize(void);
 static void handle_signal(const int signal);
 
+static pid_t pid;
+static char *mode;
 static int maintenance_mode = 0;
 
 int main(int argc, char **argv)
 {
+    pid = getpid();
+
     handle_args(argc, argv);
     check_user();
     daemonize();
+
+    mode = maintenance_mode ? "maintenance" : "default";
 
     report("hok-daemon %d.%d.%d started (mode: %s, PID: %d)",
            MAJOR_VERSION,
            MINOR_VERSION,
            PATCH_VERSION,
-           maintenance_mode ? "maintenance" : "default",
-           getpid());
+           mode,
+           pid);
 
     signal(SIGTERM, handle_signal);
     signal(SIGSEGV, handle_signal);
@@ -188,8 +194,8 @@ static void handle_signal(const int signal)
                    MAJOR_VERSION,
                    MINOR_VERSION,
                    PATCH_VERSION,
-                   maintenance_mode ? "maintenance" : "default",
-                   getpid());
+                   mode,
+                   pid);
             exit(EXIT_SUCCESS);
 
         case SIGSEGV:
