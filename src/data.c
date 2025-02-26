@@ -39,7 +39,7 @@ static void save_users(void);
 static cJSON *get_or_create_user(const int_fast64_t chat_id, const int save_on_creation);
 
 static cJSON *users_cache;
-static pthread_mutex_t users_cache_mutex;
+static pthread_mutex_t users_cache_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void init_data_module(void)
 {

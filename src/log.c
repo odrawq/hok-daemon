@@ -34,7 +34,7 @@
 
 static char *get_current_timestamp(void);
 
-static pthread_mutex_t log_files_mutex;
+static pthread_mutex_t log_files_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void report(const char *fmt, ...)
 {
