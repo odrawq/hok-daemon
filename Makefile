@@ -33,7 +33,7 @@ BUILD_DIR       = build/
 BIN_DIR         = /usr/local/bin/
 DATA_DIR        = /var/lib/$(TARGET)/
 LOG_DIR         = /var/log/$(TARGET)/
-USERS_DATA_FILE = users_data.json
+USERS_FILE      = users.json
 ERROR_LOG_FILE  = error_log
 INFO_LOG_FILE   = info_log
 
@@ -67,9 +67,9 @@ install:
 
 	sudo mkdir -p $(DATA_DIR)
 
-	if ! sudo test -f $(DATA_DIR)$(USERS_DATA_FILE); then \
-		sudo touch $(DATA_DIR)$(USERS_DATA_FILE); \
-		echo "{}" | sudo tee $(DATA_DIR)$(USERS_DATA_FILE) > /dev/null; \
+	if ! sudo test -f $(DATA_DIR)$(USERS_FILE); then \
+		sudo touch $(DATA_DIR)$(USERS_FILE); \
+		echo "{}" | sudo tee $(DATA_DIR)$(USERS_FILE) > /dev/null; \
 	fi
 
 	if ! id -u $(TARGET) > /dev/null 2>&1; then \

@@ -34,254 +34,238 @@
 #include "log.h"
 #include "data.h"
 
-static void load_users_data(void);
-static void save_users_data(void);
-static cJSON *get_or_create_user_data(const int_fast64_t chat_id, const int save_on_creation);
+static void load_users(void);
+static void save_users(void);
+static cJSON *get_or_create_user(const int_fast64_t chat_id, const int save_on_creation);
 
-static cJSON *users_data_cache;
-static pthread_mutex_t users_data_cache_mutex;
-static pthread_mutexattr_t users_data_cache_mutex_attr;
+static cJSON *users_cache;
+static pthread_mutex_t users_cache_mutex;
 
 void init_data_module(void)
 {
-    pthread_mutexattr_init(&users_data_cache_mutex_attr);
-    pthread_mutexattr_settype(&users_data_cache_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&users_data_cache_mutex, &users_data_cache_mutex_attr);
-    load_users_data();
+    load_users();
 }
 
 int get_state(const int_fast64_t chat_id, const char *state_name)
 {
-    pthread_mutex_lock(&users_data_cache_mutex);
-    const cJSON *state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), state_name);
-    pthread_mutex_unlock(&users_data_cache_mutex);
+    pthread_mutex_lock(&users_cache_mutex);
+    const cJSON *state = cJSON_GetObjectItem(get_or_create_user(chat_id, 1), state_name);
+    pthread_mutex_unlock(&users_cache_mutex);
 
     return state->valueint;
 }
 
 void set_state(const int_fast64_t chat_id, const char *state_name, const int state_value)
 {
-    pthread_mutex_lock(&users_data_cache_mutex);
+    pthread_mutex_lock(&users_cache_mutex);
 
-    cJSON_SetIntValue(cJSON_GetObjectItem(get_or_create_user_data(chat_id, 0), state_name), state_value);
-    save_users_data();
+    cJSON_SetIntValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), state_name), state_value);
+    save_users();
 
-    pthread_mutex_unlock(&users_data_cache_mutex);
+    pthread_mutex_unlock(&users_cache_mutex);
 }
 
 int has_problem(const int_fast64_t chat_id)
 {
-    pthread_mutex_lock(&users_data_cache_mutex);
-    const int state = cJSON_GetObjectItem(get_or_create_user_data(chat_id, 1), "problem") ? 1 : 0;
-    pthread_mutex_unlock(&users_data_cache_mutex);
+    pthread_mutex_lock(&users_cache_mutex);
+    const int state = cJSON_GetObjectItem(get_or_create_user(chat_id, 1), "problem") ? 1 : 0;
+    pthread_mutex_unlock(&users_cache_mutex);
 
     return state;
 }
 
-void set_problem(const int_fast64_t chat_id, const char *problem)
+void set_problem(const int_fast64_t chat_id, const char *problem_text)
 {
-    pthread_mutex_lock(&users_data_cache_mutex);
+    cJSON *problem = cJSON_CreateObject();
+    cJSON_AddNumberToObject(problem, "time", time(NULL));
+    cJSON_AddStringToObject(problem, "text", problem_text);
 
-    const time_t current_time = time(NULL);
-    cJSON *user_problem = cJSON_CreateObject();
+    pthread_mutex_lock(&users_cache_mutex);
 
-    cJSON_AddNumberToObject(user_problem, "time", current_time);
-    cJSON_AddStringToObject(user_problem, "text", problem);
-    cJSON_AddItemToObject(get_or_create_user_data(chat_id, 0), "problem", user_problem);
+    cJSON_AddItemToObject(get_or_create_user(chat_id, 0), "problem", problem);
+    save_users();
 
-    save_users_data();
-
-    pthread_mutex_unlock(&users_data_cache_mutex);
+    pthread_mutex_unlock(&users_cache_mutex);
 }
 
 void unset_problem(const int_fast64_t chat_id)
 {
-    pthread_mutex_lock(&users_data_cache_mutex);
+    pthread_mutex_lock(&users_cache_mutex);
 
-    cJSON_DeleteItemFromObject(get_or_create_user_data(chat_id, 0), "problem");
-    save_users_data();
+    cJSON_DeleteItemFromObject(get_or_create_user(chat_id, 0), "problem");
+    save_users();
 
-    pthread_mutex_unlock(&users_data_cache_mutex);
+    pthread_mutex_unlock(&users_cache_mutex);
 }
 
 cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems)
 {
-    pthread_mutex_lock(&users_data_cache_mutex);
-
     cJSON *problems = cJSON_CreateArray();
-    cJSON *user_data = users_data_cache->child;
 
-    while (user_data)
+    pthread_mutex_lock(&users_cache_mutex);
+    cJSON *user = users_cache->child;
+
+    while (user)
     {
-        const int_fast64_t chat_id = strtoll(user_data->string, NULL, 10);
+        const int_fast64_t chat_id = strtoll(user->string, NULL, 10);
 
-        const int account_ban_state = get_state(chat_id, "account_ban_state");
-        const int problem_pending_state = get_state(chat_id, "problem_pending_state");
+        const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "account_ban_state"));
+        const int problem_pending_state = cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "problem_pending_state"));
 
         if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||
             (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||
             (!banned_problems && !pending_problems && !(!account_ban_state && !problem_pending_state)) ||
             (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)))
-        {
-            user_data = user_data->next;
-            continue;
-        }
+            goto next;
 
-        const cJSON *user_problem = cJSON_GetObjectItem(user_data, "problem");
+        const cJSON *problem = cJSON_GetObjectItem(user, "problem");
 
-        if (user_problem)
+        if (problem)
         {
-            const char *user_problem_string = cJSON_GetStringValue(cJSON_GetObjectItem(user_problem, "text"));
+            cJSON *text = cJSON_GetObjectItem(problem, "text");
 
             if (!include_chat_ids)
-                cJSON_AddItemToArray(problems, cJSON_CreateString(user_problem_string));
+                cJSON_AddItemToArray(problems, cJSON_CreateString(text->valuestring));
             else
             {
                 char chat_id_with_problem[MAX_CHAT_ID_SIZE + MAX_USERNAME_SIZE + MAX_PROBLEM_SIZE + 7];
                 sprintf(chat_id_with_problem,
                         "(%s) %s",
-                        user_data->string,
-                        user_problem_string);
+                        user->string,
+                        text->valuestring);
 
                 cJSON_AddItemToArray(problems, cJSON_CreateString(chat_id_with_problem));
             }
         }
 
-        user_data = user_data->next;
+    next:
+        user = user->next;
     }
 
-    pthread_mutex_unlock(&users_data_cache_mutex);
+    pthread_mutex_unlock(&users_cache_mutex);
     return problems;
 }
 
 cJSON *get_outdated_problems_chat_ids(void)
 {
-    pthread_mutex_lock(&users_data_cache_mutex);
-
     cJSON *outdated_problems_chat_ids = cJSON_CreateArray();
-    cJSON *user_data = users_data_cache->child;
 
-    while (user_data)
+    pthread_mutex_lock(&users_cache_mutex);
+    cJSON *user = users_cache->child;
+
+    while (user)
     {
-        const int_fast64_t chat_id = strtoll(user_data->string, NULL, 10);
+        const int_fast64_t chat_id = strtoll(user->string, NULL, 10);
 
-        if (get_state(chat_id, "account_ban_state") ||
-            get_state(chat_id, "problem_pending_state"))
-        {
-            user_data = user_data->next;
-            continue;
-        }
+        if (cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "account_ban_state")) ||
+            cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "problem_pending_state")))
+            goto next;
 
-        const cJSON *user_problem = cJSON_GetObjectItem(user_data, "problem");
+        const cJSON *problem = cJSON_GetObjectItem(user, "problem");
 
-        if (user_problem)
-        {
-            const time_t current_time = time(NULL);
-            const time_t user_problem_time = cJSON_GetNumberValue(cJSON_GetObjectItem(user_problem, "time"));
+        if (problem && difftime(time(NULL), cJSON_GetNumberValue(cJSON_GetObjectItem(problem, "time"))) > MAX_PROBLEM_SECONDS)
+            cJSON_AddItemToArray(outdated_problems_chat_ids, cJSON_CreateString(user->string));
 
-            if (difftime(current_time, user_problem_time) > MAX_PROBLEM_SECONDS)
-                cJSON_AddItemToArray(outdated_problems_chat_ids, cJSON_CreateString(user_data->string));
-        }
-
-        user_data = user_data->next;
+    next:
+        user = user->next;
     }
 
-    pthread_mutex_unlock(&users_data_cache_mutex);
+    pthread_mutex_unlock(&users_cache_mutex);
     return outdated_problems_chat_ids;
 }
 
 /*
- * Loads data from FILE_USERSDATA into users_data_cache.
+ * Loads data from FILE_USERS into users_cache.
  */
-static void load_users_data(void)
+static void load_users(void)
 {
-    FILE *users_data_file = fopen(FILE_USERSDATA, "r");
+    FILE *users_file = fopen(FILE_USERS, "r");
 
-    if (!users_data_file)
+    if (!users_file)
         die("%s: %s: failed to open %s",
             __BASE_FILE__,
             __func__,
-            FILE_USERSDATA);
+            FILE_USERS);
 
-    fseek(users_data_file, 0, SEEK_END);
-    const size_t users_data_file_size = ftell(users_data_file);
-    rewind(users_data_file);
+    fseek(users_file, 0, SEEK_END);
+    const size_t users_file_size = ftell(users_file);
+    rewind(users_file);
 
-    char *users_data_string = malloc(users_data_file_size + 1);
+    char *users_string = malloc(users_file_size + 1);
 
-    if (!users_data_string)
-        die("%s: %s: failed to allocate memory for users_data_string",
+    if (!users_string)
+        die("%s: %s: failed to allocate memory for users_string",
             __BASE_FILE__,
             __func__);
 
-    if (fread(users_data_string,
+    if (fread(users_string,
               1,
-              users_data_file_size,
-              users_data_file) != users_data_file_size)
+              users_file_size,
+              users_file) != users_file_size)
         die("%s: %s: failed to read data from %s",
             __BASE_FILE__,
             __func__,
-            FILE_USERSDATA);
+            FILE_USERS);
 
-    fclose(users_data_file);
+    fclose(users_file);
 
-    users_data_string[users_data_file_size] = 0;
-    cJSON *users_data = cJSON_Parse(users_data_string);
+    users_string[users_file_size] = 0;
+    cJSON *users = cJSON_Parse(users_string);
 
-    if (!users_data)
-        die("%s: %s: failed to parse users_data_string",
+    if (!users)
+        die("%s: %s: failed to parse users_string",
             __BASE_FILE__,
             __func__);
 
-    free(users_data_string);
-    users_data_cache = users_data;
+    free(users_string);
+    users_cache = users;
 }
 
 /*
- * Saves data from users_data_cache into FILE_USERSDATA.
+ * Saves data from users_cache into FILE_USERS.
  */
-static void save_users_data(void)
+static void save_users(void)
 {
-    char *users_data_string = cJSON_Print(users_data_cache);
+    char *users_string = cJSON_Print(users_cache);
 
-    if (!users_data_string)
-        die("%s: %s: failed to print users_data_cache");
+    if (!users_string)
+        die("%s: %s: failed to print users_cache");
 
-    FILE *users_data_file = fopen(FILE_USERSDATA, "w");
+    FILE *users_file = fopen(FILE_USERS, "w");
 
-    if (!users_data_file)
+    if (!users_file)
         die("%s: %s: failed to open %s",
             __BASE_FILE__,
             __func__,
-            FILE_USERSDATA);
+            FILE_USERS);
 
-    fprintf(users_data_file, "%s", users_data_string);
+    fprintf(users_file, "%s", users_string);
 
-    fclose(users_data_file);
-    free(users_data_string);
+    fclose(users_file);
+    free(users_string);
 }
 
-static cJSON *get_or_create_user_data(const int_fast64_t chat_id, const int save_on_creation)
+static cJSON *get_or_create_user(const int_fast64_t chat_id, const int save_on_creation)
 {
     char chat_id_string[MAX_CHAT_ID_SIZE + 1];
     sprintf(chat_id_string,
             "%" PRIdFAST64,
             chat_id);
 
-    cJSON *user_data = cJSON_GetObjectItem(users_data_cache, chat_id_string);
+    cJSON *user = cJSON_GetObjectItem(users_cache, chat_id_string);
 
-    if (!user_data)
+    if (!user)
     {
-        user_data = cJSON_CreateObject();
+        user = cJSON_CreateObject();
+        cJSON_AddNumberToObject(user, "account_ban_state", 0);
+        cJSON_AddNumberToObject(user, "problem_pending_state", 1);
+        cJSON_AddNumberToObject(user, "problem_description_state", 0);
 
-        cJSON_AddNumberToObject(user_data, "account_ban_state", 0);
-        cJSON_AddNumberToObject(user_data, "problem_pending_state", 1);
-        cJSON_AddNumberToObject(user_data, "problem_description_state", 0);
-        cJSON_AddItemToObject(users_data_cache, chat_id_string, user_data);
+        cJSON_AddItemToObject(users_cache, chat_id_string, user);
 
         if (save_on_creation)
-            save_users_data();
+            save_users();
     }
 
-    return user_data;
+    return user;
 }

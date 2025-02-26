@@ -31,7 +31,7 @@
     #include <stdint.h>
     #include <cjson/cJSON.h>
 
-    #define FILE_USERSDATA "/var/lib/hok-daemon/users_data.json"
+    #define FILE_USERS "/var/lib/hok-daemon/users.json"
 
     #define MAX_USERNAME_SIZE   32
     #define MAX_CHAT_ID_SIZE    20
@@ -42,7 +42,7 @@
     int get_state(const int_fast64_t chat_id, const char *state_name);
     void set_state(const int_fast64_t chat_id, const char *state_name, const int state_value);
     int has_problem(const int_fast64_t chat_id);
-    void set_problem(const int_fast64_t chat_id, const char *problem);
+    void set_problem(const int_fast64_t chat_id, const char *problem_text);
     void unset_problem(const int_fast64_t chat_id);
     cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems);
     cJSON *get_outdated_problems_chat_ids(void);
