@@ -226,7 +226,7 @@ static void load_users(void)
  */
 static void save_users(void)
 {
-    char *users_string = cJSON_Print(users_cache);
+    char *users_string = cJSON_PrintUnformatted(users_cache);
 
     if (!users_string)
         die("%s: %s: failed to print users_cache");
