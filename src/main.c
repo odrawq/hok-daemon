@@ -38,7 +38,7 @@
 #include "data.h"
 #include "bot.h"
 
-#define ERRORSTAMP "\033[31;1mError:\e[0m"
+#define ERRORSTAMP "\e[0;31;1mError:\e[0m"
 
 static void handle_args(int argc, char **argv);
 static void check_user(void);
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     pid = getpid();
     mode = maintenance_mode ? "maintenance" : "default";
 
-    report("hok-daemon %d.%d.%d started (mode: %s, PID: %d)",
+    report("hok-daemon %d.%d.%d started (mode: %s; PID: %d)",
            MAJOR_VERSION,
            MINOR_VERSION,
            PATCH_VERSION,
@@ -162,7 +162,7 @@ static void check_user(void)
     if (!pw)
     {
         fprintf(stderr,
-                ERRORSTAMP " failed to get user information\n");
+                ERRORSTAMP " failed to get user data\n");
         exit(EXIT_FAILURE);
     }
 
@@ -189,7 +189,7 @@ static void handle_signal(const int signal)
     switch (signal)
     {
         case SIGTERM:
-            report("hok-daemon %d.%d.%d terminated (mode: %s, PID: %d)",
+            report("hok-daemon %d.%d.%d terminated (mode: %s; PID: %d)",
                    MAJOR_VERSION,
                    MINOR_VERSION,
                    PATCH_VERSION,
