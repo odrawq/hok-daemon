@@ -37,6 +37,8 @@ USERS_FILE     = users.json
 ERROR_LOG_FILE = error_log
 INFO_LOG_FILE  = info_log
 
+SHELL := /usr/bin/env bash
+
 SRC_FILES := $(wildcard $(SRC_DIR)*.c)
 OBJ_FILES := $(patsubst $(SRC_DIR)%.c, $(BUILD_DIR)%.o, $(SRC_FILES))
 DEP_FILES := $(OBJ_FILES:.o=.d)
