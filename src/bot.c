@@ -50,16 +50,16 @@ static void handle_command(const int_fast64_t chat_id,
                            const int is_root_user,
                            const char *username,
                            const char *command);
+static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user);
+static void handle_helpme_command(const int_fast64_t chat_id, const char *username);
+static void handle_closeproblem_command(const int_fast64_t chat_id);
+static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username);
 static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_root_user);
 static void handle_confirm_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_decline_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_banlist_command(const int_fast64_t chat_id, const int is_root_user);
 static void handle_ban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_unban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
-static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username);
-static void handle_helpme_command(const int_fast64_t chat_id, const char *username);
-static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user);
-static void handle_closeproblem_command(const int_fast64_t chat_id);
 
 static volatile int unset_outdated_problems_thread_running = 0;
 static volatile int update_problems_usernames_thread_running = 0;
@@ -396,7 +396,15 @@ static void handle_command(const int_fast64_t chat_id,
         return;
     }
 
-    if (!strcmp(command, COMMAND_PENDINGLIST))
+    if (!strcmp(command, COMMAND_HELPSOMEONE))
+        handle_helpsomeone_command(chat_id, is_root_user);
+    else if (!strcmp(command, COMMAND_HELPME))
+        handle_helpme_command(chat_id, username);
+    else if (!strcmp(command, COMMAND_CLOSEPROBLEM))
+        handle_closeproblem_command(chat_id);
+    else if (!strcmp(command, COMMAND_START))
+        handle_start_command(chat_id, is_root_user, username);
+    else if (!strcmp(command, COMMAND_PENDINGLIST))
         handle_pendinglist_command(chat_id, is_root_user);
     else if (!strncmp(command, COMMAND_CONFIRM, MAX_COMMAND_CONFIRM_SIZE))
         handle_confirm_command(chat_id,
@@ -416,14 +424,6 @@ static void handle_command(const int_fast64_t chat_id,
         handle_unban_command(chat_id,
                              is_root_user,
                              command + MAX_COMMAND_UNBAN_SIZE);
-    else if (!strcmp(command, COMMAND_START))
-        handle_start_command(chat_id, is_root_user, username);
-    else if (!strcmp(command, COMMAND_HELPME))
-        handle_helpme_command(chat_id, username);
-    else if (!strcmp(command, COMMAND_HELPSOMEONE))
-        handle_helpsomeone_command(chat_id, is_root_user);
-    else if (!strcmp(command, COMMAND_CLOSEPROBLEM))
-        handle_closeproblem_command(chat_id);
     else if (!strcmp(command, COMMAND_CANCEL))
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, вы не описываете проблему",
@@ -431,6 +431,118 @@ static void handle_command(const int_fast64_t chat_id,
     else
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, я не знаю такого действия",
+                                   "");
+}
+
+static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user)
+{
+    cJSON *problems = get_problems(is_root_user, 0, 0);
+    const int problems_size = cJSON_GetArraySize(problems);
+
+    if (!problems_size)
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_OK " Пока что никто не нуждается в помощи",
+                                   "");
+    else
+        for (int i = 0; i < problems_size; ++i)
+            send_message_with_keyboard(chat_id,
+                                       cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
+                                       i + 1 != problems_size ? NOKEYBOARD : get_current_keyboard(chat_id));
+
+    cJSON_Delete(problems);
+}
+
+static void handle_helpme_command(const int_fast64_t chat_id, const char *username)
+{
+    if (has_problem(chat_id))
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, вы уже описали вашу проблему",
+                                   "");
+    else
+    {
+        if (!username)
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_FAILED " Извините, для этой функции вам нужно "
+                                       "создать имя пользователя в настройках Telegram",
+                                       "");
+        else
+        {
+            set_state(chat_id, "problem_description_state", 1);
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_WRITE " Пожалуйста, опишите вашу проблему (для отмены - /cancel)",
+                                       NOKEYBOARD);
+        }
+    }
+}
+
+static void handle_closeproblem_command(const int_fast64_t chat_id)
+{
+    if (!has_problem(chat_id))
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, у вас нет проблемы для закрытия",
+                                   "");
+    else
+    {
+        if (get_state(chat_id, "problem_pending_state"))
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_FAILED " Извините, вы не можете закрыть проблему, которая находится на проверке",
+                                       "");
+        else
+        {
+            unset_problem(chat_id);
+
+            report("User %" PRIdFAST64
+                   " closed his problem",
+                   chat_id);
+
+            send_message_with_keyboard(chat_id,
+                                       EMOJI_OK " Ваша проблема закрыта\n\n"
+                                       "Я очень рад, что ваша проблема решена!",
+                                       get_current_keyboard(chat_id));
+        }
+    }
+}
+
+static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username)
+{
+    const char *user_greeting = EMOJI_GREETING " Добро пожаловать";
+    const char *bot_description = "Оказывайте поддержку и помощь другим, а также получайте решения собственных проблем!";
+
+    char start_message[strlen(user_greeting) + strlen(bot_description) + MAX_USERNAME_SIZE + 6];
+
+    if (!username)
+        sprintf(start_message,
+                "%s\n\n%s",
+                user_greeting,
+                bot_description);
+    else
+        sprintf(start_message,
+                "%s, @%s\n\n%s",
+                user_greeting,
+                username,
+                bot_description);
+
+    send_message_with_keyboard(chat_id,
+                               start_message,
+                               get_current_keyboard(chat_id));
+
+    if (is_root_user)
+        send_message_with_keyboard(ROOT_CHAT_ID,
+                                   EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ\n\n"
+                                   EMOJI_INFO " Вывести проблемы для проверки\n"
+                                   "/pendinglist\n\n"
+                                   EMOJI_INFO " Одобрить проблему\n"
+                                   "/confirm <id>\n\n"
+                                   EMOJI_INFO " Отклонить проблему\n"
+                                   "/decline <id>\n\n"
+                                   EMOJI_INFO " Вывести проблемы заблокированных пользователей\n"
+                                   "/banlist\n\n"
+                                   EMOJI_INFO " Заблокировать пользователя\n"
+                                   "/ban <id>\n\n"
+                                   EMOJI_INFO " Разблокировать пользователя\n"
+                                   "/unban <id>\n\n"
+                                   "Вместо <id> нужно указать идентификатор пользователя. "
+                                   "Идентификатор находится перед проблемой пользователя в круглых скобках.",
                                    "");
 }
 
@@ -695,118 +807,6 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
                                            EMOJI_OK " Пользователь разблокирован",
                                            "");
             }
-        }
-    }
-}
-
-static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username)
-{
-    const char *user_greeting = EMOJI_GREETING " Добро пожаловать";
-    const char *bot_description = "Оказывайте поддержку и помощь другим, а также получайте решения собственных проблем!";
-
-    char start_message[strlen(user_greeting) + strlen(bot_description) + MAX_USERNAME_SIZE + 6];
-
-    if (!username)
-        sprintf(start_message,
-                "%s\n\n%s",
-                user_greeting,
-                bot_description);
-    else
-        sprintf(start_message,
-                "%s, @%s\n\n%s",
-                user_greeting,
-                username,
-                bot_description);
-
-    send_message_with_keyboard(chat_id,
-                               start_message,
-                               get_current_keyboard(chat_id));
-
-    if (is_root_user)
-        send_message_with_keyboard(ROOT_CHAT_ID,
-                                   EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ\n\n"
-                                   EMOJI_INFO " Вывести проблемы для проверки\n"
-                                   "/pendinglist\n\n"
-                                   EMOJI_INFO " Одобрить проблему\n"
-                                   "/confirm <id>\n\n"
-                                   EMOJI_INFO " Отклонить проблему\n"
-                                   "/decline <id>\n\n"
-                                   EMOJI_INFO " Вывести проблемы заблокированных пользователей\n"
-                                   "/banlist\n\n"
-                                   EMOJI_INFO " Заблокировать пользователя\n"
-                                   "/ban <id>\n\n"
-                                   EMOJI_INFO " Разблокировать пользователя\n"
-                                   "/unban <id>\n\n"
-                                   "Вместо <id> нужно указать идентификатор пользователя. "
-                                   "Идентификатор находится перед проблемой пользователя в круглых скобках.",
-                                   "");
-}
-
-static void handle_helpme_command(const int_fast64_t chat_id, const char *username)
-{
-    if (has_problem(chat_id))
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_FAILED " Извините, вы уже описали вашу проблему",
-                                   "");
-    else
-    {
-        if (!username)
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_FAILED " Извините, для этой функции вам нужно "
-                                       "создать имя пользователя в настройках Telegram",
-                                       "");
-        else
-        {
-            set_state(chat_id, "problem_description_state", 1);
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_WRITE " Пожалуйста, опишите вашу проблему (для отмены - /cancel)",
-                                       NOKEYBOARD);
-        }
-    }
-}
-
-static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user)
-{
-    cJSON *problems = get_problems(is_root_user, 0, 0);
-    const int problems_size = cJSON_GetArraySize(problems);
-
-    if (!problems_size)
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_OK " Пока что никто не нуждается в помощи",
-                                   "");
-    else
-        for (int i = 0; i < problems_size; ++i)
-            send_message_with_keyboard(chat_id,
-                                       cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
-                                       i + 1 != problems_size ? NOKEYBOARD : get_current_keyboard(chat_id));
-
-    cJSON_Delete(problems);
-}
-
-static void handle_closeproblem_command(const int_fast64_t chat_id)
-{
-    if (!has_problem(chat_id))
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_FAILED " Извините, у вас нет проблемы для закрытия",
-                                   "");
-    else
-    {
-        if (get_state(chat_id, "problem_pending_state"))
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_FAILED " Извините, вы не можете закрыть проблему, которая находится на проверке",
-                                       "");
-        else
-        {
-            unset_problem(chat_id);
-
-            report("User %" PRIdFAST64
-                   " closed his problem",
-                   chat_id);
-
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_OK " Ваша проблема закрыта\n\n"
-                                       "Я очень рад, что ваша проблема решена!",
-                                       get_current_keyboard(chat_id));
         }
     }
 }
