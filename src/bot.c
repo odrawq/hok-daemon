@@ -37,7 +37,7 @@
 #include "data.h"
 #include "bot.h"
 
-static void *unset_outdated_problems(void *_);
+static void *unset_expired_problems(void *_);
 static void *update_problems_usernames(void *_);
 static void handle_updates(cJSON *updates, const int maintenance_mode);
 static void *handle_message_in_maintenance_mode(void *cjson_message);
@@ -61,7 +61,7 @@ static void handle_banlist_command(const int_fast64_t chat_id, const int is_root
 static void handle_ban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 static void handle_unban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
 
-static volatile int unset_outdated_problems_thread_running = 0;
+static volatile int unset_expired_problems_thread_running = 0;
 static volatile int update_problems_usernames_thread_running = 0;
 static int_fast32_t last_update_id = 0;
 
@@ -71,21 +71,21 @@ void start_bot(const int maintenance_mode)
     {
         if (!maintenance_mode)
         {
-            if (!unset_outdated_problems_thread_running)
+            if (!unset_expired_problems_thread_running)
             {
-                pthread_t unset_outdated_problems_thread;
+                pthread_t unset_expired_problems_thread;
 
-                if (pthread_create(&unset_outdated_problems_thread,
+                if (pthread_create(&unset_expired_problems_thread,
                                    NULL,
-                                   unset_outdated_problems,
+                                   unset_expired_problems,
                                    NULL))
-                    die("%s: %s: failed to create unset_outdated_problems_thread",
+                    die("%s: %s: failed to create unset_expired_problems_thread",
                         __BASE_FILE__,
                         __func__);
                 else
                 {
-                    unset_outdated_problems_thread_running = 1;
-                    pthread_detach(unset_outdated_problems_thread);
+                    unset_expired_problems_thread_running = 1;
+                    pthread_detach(unset_expired_problems_thread);
                 }
             }
 
@@ -118,30 +118,30 @@ void start_bot(const int maintenance_mode)
     }
 }
 
-static void *unset_outdated_problems(void *_)
+static void *unset_expired_problems(void *_)
 {
     (void) _;
 
-    cJSON *outdated_problems_chat_ids = get_outdated_problems_chat_ids();
-    const int outdated_problems_chat_ids_size = cJSON_GetArraySize(outdated_problems_chat_ids);
+    cJSON *expired_problems_chat_ids = get_expired_problems_chat_ids();
+    const int expired_problems_chat_ids_size = cJSON_GetArraySize(expired_problems_chat_ids);
 
-    for (int i = 0; i < outdated_problems_chat_ids_size; ++i)
+    for (int i = 0; i < expired_problems_chat_ids_size; ++i)
     {
-        const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(outdated_problems_chat_ids, i)), NULL, 10);
+        const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(expired_problems_chat_ids, i)), NULL, 10);
         unset_problem(chat_id);
 
         report("User %" PRIdFAST64
-               " problem exceeded the storage time limit and was closed",
+               " problem expired and was closed",
                chat_id);
 
         send_message_with_keyboard(chat_id,
-                                   EMOJI_ATTENTION " Ваша проблема привысила временной лимит хранения и была закрыта\n\n"
+                                   EMOJI_ATTENTION " Время вашей проблемы истекло\n\n"
                                    "Если вам всё ещё нужна помощь, пожалуйста, опишите вашу проблему ещё раз!",
                                    get_current_keyboard(chat_id));
     }
 
-    cJSON_Delete(outdated_problems_chat_ids);
-    unset_outdated_problems_thread_running = 0;
+    cJSON_Delete(expired_problems_chat_ids);
+    unset_expired_problems_thread_running = 0;
     return NULL;
 }
 
@@ -179,7 +179,7 @@ static void *update_problems_usernames(void *_)
             unset_problem(chat_id);
 
             report("User %" PRIdFAST64
-                   " removed his username '%s' and his problem was closed",
+                   " removed username '%s' and problem was closed",
                    chat_id,
                    username);
 
@@ -199,7 +199,7 @@ static void *update_problems_usernames(void *_)
             set_problem(chat_id, username_with_problem);
 
             report("User %" PRIdFAST64
-                   " changed his username from '%s'"
+                   " changed username from '%s'"
                    " to '%s'",
                    chat_id,
                    username,
@@ -469,7 +469,8 @@ static void handle_helpme_command(const int_fast64_t chat_id, const char *userna
         {
             set_state(chat_id, "problem_description_state", 1);
             send_message_with_keyboard(chat_id,
-                                       EMOJI_WRITE " Пожалуйста, опишите вашу проблему (для отмены - /cancel)",
+                                       EMOJI_WRITE " Опишите вашу проблему\n\n"
+                                       " Отменить - /cancel.",
                                        NOKEYBOARD);
         }
     }
@@ -492,7 +493,7 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
             unset_problem(chat_id);
 
             report("User %" PRIdFAST64
-                   " closed his problem",
+                   " closed problem",
                    chat_id);
 
             send_message_with_keyboard(chat_id,
@@ -593,7 +594,7 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           EMOJI_FAILED " Извините, вы указали некорректный id",
                                            "");
             else if (!has_problem(target_chat_id))
                 send_message_with_keyboard(ROOT_CHAT_ID,
@@ -647,7 +648,7 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           EMOJI_FAILED " Извините, вы указали некорректный id",
                                            "");
             else if (!has_problem(target_chat_id))
                 send_message_with_keyboard(ROOT_CHAT_ID,
@@ -726,7 +727,7 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           EMOJI_FAILED " Извините, вы указали некорректный id",
                                            "");
             else if (target_chat_id == ROOT_CHAT_ID)
                 send_message_with_keyboard(ROOT_CHAT_ID,
@@ -781,7 +782,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, указанный id некорректен",
+                                           EMOJI_FAILED " Извините, вы указали некорректный id",
                                            "");
             else if (!get_state(target_chat_id, "account_ban_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,

@@ -45,6 +45,6 @@
     void set_problem(const int_fast64_t chat_id, const char *problem_text);
     void unset_problem(const int_fast64_t chat_id);
     cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems);
-    cJSON *get_outdated_problems_chat_ids(void);
+    cJSON *get_expired_problems_chat_ids(void);
 
 #endif

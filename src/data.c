@@ -146,9 +146,9 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems, const
     return problems;
 }
 
-cJSON *get_outdated_problems_chat_ids(void)
+cJSON *get_expired_problems_chat_ids(void)
 {
-    cJSON *outdated_problems_chat_ids = cJSON_CreateArray();
+    cJSON *expired_problems_chat_ids = cJSON_CreateArray();
 
     pthread_mutex_lock(&users_cache_mutex);
     cJSON *user = users_cache->child;
@@ -164,14 +164,14 @@ cJSON *get_outdated_problems_chat_ids(void)
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");
 
         if (problem && difftime(time(NULL), cJSON_GetNumberValue(cJSON_GetObjectItem(problem, "time"))) > MAX_PROBLEM_SECONDS)
-            cJSON_AddItemToArray(outdated_problems_chat_ids, cJSON_CreateString(user->string));
+            cJSON_AddItemToArray(expired_problems_chat_ids, cJSON_CreateString(user->string));
 
     next:
         user = user->next;
     }
 
     pthread_mutex_unlock(&users_cache_mutex);
-    return outdated_problems_chat_ids;
+    return expired_problems_chat_ids;
 }
 
 /*
