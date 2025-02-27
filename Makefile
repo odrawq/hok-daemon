@@ -25,17 +25,17 @@
 #                                                                            #
 ##############################################################################
 
-TARGET          = hok-daemon
-CC              = gcc
-CFLAGS          = -Wall -Wextra -O2 -Iinclude/ -lpthread -lcurl -lcjson
-SRC_DIR         = src/
-BUILD_DIR       = build/
-BIN_DIR         = /usr/local/bin/
-DATA_DIR        = /var/lib/$(TARGET)/
-LOG_DIR         = /var/log/$(TARGET)/
-USERS_FILE      = users.json
-ERROR_LOG_FILE  = error_log
-INFO_LOG_FILE   = info_log
+TARGET         = hok-daemon
+CC             = gcc
+CFLAGS         = -Wall -Wextra -O2 -Iinclude/ -lpthread -lcurl -lcjson
+SRC_DIR        = src/
+BUILD_DIR      = build/
+BIN_DIR        = /usr/local/bin/
+DATA_DIR       = /var/lib/$(TARGET)/
+LOG_DIR        = /var/log/$(TARGET)/
+USERS_FILE     = users.json
+ERROR_LOG_FILE = error_log
+INFO_LOG_FILE  = info_log
 
 SRC_FILES := $(wildcard $(SRC_DIR)*.c)
 OBJ_FILES := $(patsubst $(SRC_DIR)%.c, $(BUILD_DIR)%.o, $(SRC_FILES))
@@ -46,10 +46,12 @@ DEP_FILES := $(OBJ_FILES:.o=.d)
 build: $(BUILD_DIR) $(BUILD_DIR)$(TARGET)
 
 $(BUILD_DIR):
+	@echo -e "\e[0;33;1mBuilding $(TARGET)...\e[0m"
 	mkdir -p $@
 
 $(BUILD_DIR)$(TARGET): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS)
+	@echo -e "\e[0;32;1mBuilding finished!\n$$($(BUILD_DIR)$(TARGET) -v) on $$(uname -mo)\e[0m"
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c
 	$(CC) -c $< -o $@ -MMD $(CFLAGS)
@@ -57,10 +59,15 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%.c
 -include $(DEP_FILES)
 
 clean:
+	@echo -e "\e[0;33;1mCleaning build files...\e[0m"
 	rm -rf $(BUILD_DIR)
+	@echo -e "\e[0;32;1mCleaning finished!\e[0m"
 
 install:
+	@echo -e "\e[0;33;1mInstalling $(TARGET)...\e[0m"
 	sudo cp $(BUILD_DIR)$(TARGET) $(BIN_DIR)
+
+	@echo -e "\e[0;33;1mCreating $(TARGET) files...\e[0m"
 
 	sudo mkdir -p $(LOG_DIR)
 	sudo touch $(LOG_DIR)$(ERROR_LOG_FILE) $(LOG_DIR)$(INFO_LOG_FILE)
@@ -72,19 +79,32 @@ install:
 		echo "{}" | sudo tee $(DATA_DIR)$(USERS_FILE) > /dev/null; \
 	fi
 
+	@echo -e "\e[0;33;1mCreating $(TARGET) user...\e[0m"
+
 	if ! id -u $(TARGET) > /dev/null 2>&1; then \
 		sudo useradd -r -s /bin/false $(TARGET); \
 	fi
 
+	@echo -e "\e[0;33;1mSetting access permissions...\e[0m"
+
 	sudo chown -R $(TARGET):$(TARGET) $(LOG_DIR) $(DATA_DIR)
 	sudo chmod 700 $(LOG_DIR) $(DATA_DIR)
 
+	@echo -e "\e[0;32;1mInstallation finished!\e[0m"
+
 uninstall:
+	@echo -e "\e[0;33;1mDeleting $(TARGET)...\e[0m"
 	sudo rm -f $(BIN_DIR)$(TARGET)
+	@echo -e "\e[0;32;1mUninstallation finished!\e[0m"
 
 purge: uninstall
+	@echo -e "\e[0;33;1mDeleting $(TARGET) files...\e[0m"
 	sudo rm -rf $(LOG_DIR) $(DATA_DIR)
+
+	@echo -e "\e[0;33;1mDeleting $(TARGET) user...\e[0m"
 
 	if id -u $(TARGET) > /dev/null 2>&1; then \
 		sudo userdel $(TARGET); \
 	fi
+
+	@echo -e "\e[0;32;1mPurging finished!\e[0m"
