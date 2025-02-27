@@ -74,7 +74,7 @@ make purge
 ## Логи и данные
 - Файл с логом ошибок находится по пути /var/log/hok-daemon/error_log;
 - Файл с логом остальной информации находится по пути /var/log/hok-daemon/info_log;
-- Файл с данными пользователей находится по пути /var/lib/hok-daemon/users_data.json.
+- Файл с данными пользователей находится по пути /var/lib/hok-daemon/users.json.
 
 ## Лицензия
 Этот проект лицензирован по лицензии GNU General Public License v3.0 (GPL-3.0) - подробности в файле [LICENSE](LICENSE).
