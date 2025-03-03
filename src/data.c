@@ -107,10 +107,8 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems, const
 
     while (user)
     {
-        const int_fast64_t chat_id = strtoll(user->string, NULL, 10);
-
-        const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "account_ban_state"));
-        const int problem_pending_state = cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "problem_pending_state"));
+        const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state"));
+        const int problem_pending_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "problem_pending_state"));
 
         if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||   // Only banned problems.
             (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||   // Only pending problems.
@@ -155,10 +153,8 @@ cJSON *get_expired_problems_chat_ids(void)
 
     while (user)
     {
-        const int_fast64_t chat_id = strtoll(user->string, NULL, 10);
-
-        if (cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "account_ban_state")) ||
-            cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "problem_pending_state")))
+        if (cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state")) ||
+            cJSON_GetNumberValue(cJSON_GetObjectItem(user, "problem_pending_state")))
             goto next;
 
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");
