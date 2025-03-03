@@ -38,8 +38,20 @@
     #define MAX_POSTFIELDS_SIZE 4096
 
     void init_requests_module(void);
+
+    /*
+     * Gets updates from the Telegram Bot API.
+     */
     cJSON *get_updates(const int_fast32_t update_id);
+
+    /*
+     * Gets a chat from the Telegram Bot API.
+     */
     cJSON *get_chat(const int_fast64_t chat_id);
+
+    /*
+     * Sends a message with a keyboard to a chat via the Telegram Bot API.
+     */
     void send_message_with_keyboard(const int_fast64_t chat_id, const char *message, const char *keyboard);
 
 #endif

@@ -34,13 +34,13 @@
     #define MAX_TIMESTAMP_SIZE 21
 
     /*
-     * Prints a formatted string to the FILE_INFOLOG with timestamp.
+     * Prints a formatted string to the FILE_INFOLOG with a timestamp.
      */
     void report(const char *fmt, ...);
 
     /*
-     * Prints a formatted string to the FILE_ERRORLOG with timestamp and
-     * terminates process with EXIT_FAILURE status.
+     * Prints a formatted string to the FILE_ERRORLOG with a timestamp and
+     * terminates the process with the EXIT_FAILURE status.
      */
     void die(const char *fmt, ...);
 

@@ -152,8 +152,8 @@ static void handle_args(int argc, char **argv)
 }
 
 /*
- * Checks user under which process runs.
- * If user is not hok-daemon, terminates process.
+ * Checks the user under which the process runs.
+ * If the user is not hok-daemon, terminates the process.
  */
 static void check_user(void)
 {

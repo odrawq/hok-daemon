@@ -112,10 +112,10 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems, const
         const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "account_ban_state"));
         const int problem_pending_state = cJSON_GetNumberValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "problem_pending_state"));
 
-        if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||
-            (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||
-            (!banned_problems && !pending_problems && !(!account_ban_state && !problem_pending_state)) ||
-            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)))
+        if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||   // Only banned problems.
+            (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||   // Only pending problems.
+            (!banned_problems && !pending_problems && !(!account_ban_state && !problem_pending_state)) || // Only non-banned and non-pending problems.
+            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)))       // Both banned and pending problems.
             goto next;
 
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");
@@ -175,7 +175,7 @@ cJSON *get_expired_problems_chat_ids(void)
 }
 
 /*
- * Loads data from FILE_USERS into users_cache.
+ * Loads data from the FILE_USERS to the users_cache.
  */
 static void load_users(void)
 {
@@ -222,7 +222,7 @@ static void load_users(void)
 }
 
 /*
- * Saves data from users_cache into FILE_USERS.
+ * Saves data from the users_cache to the FILE_USERS.
  */
 static void save_users(void)
 {
