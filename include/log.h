@@ -28,8 +28,8 @@
 #ifndef LOG_H
     #define LOG_H
 
-    #define FILE_ERRORLOG "/var/log/hok-daemon/error_log"
     #define FILE_INFOLOG  "/var/log/hok-daemon/info_log"
+    #define FILE_ERRORLOG "/var/log/hok-daemon/error_log"
 
     #define MAX_TIMESTAMP_SIZE 21
 

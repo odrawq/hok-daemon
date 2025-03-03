@@ -110,11 +110,11 @@ void start_bot(const int maintenance_mode)
 
         cJSON *updates = get_updates(last_update_id);
 
-        if (!updates)
-            continue;
-
-        handle_updates(updates, maintenance_mode);
-        cJSON_Delete(updates);
+        if (updates)
+        {
+            handle_updates(updates, maintenance_mode);
+            cJSON_Delete(updates);
+        }
     }
 }
 
@@ -226,20 +226,20 @@ static void handle_updates(cJSON *updates, const int maintenance_mode)
 
         const cJSON *message = cJSON_GetObjectItem(update, "message");
 
-        if (!message)
-            continue;
+        if (message)
+        {
+            pthread_t handle_message_thread;
 
-        pthread_t handle_message_thread;
+            if (pthread_create(&handle_message_thread,
+                               NULL,
+                               maintenance_mode ? handle_message_in_maintenance_mode : handle_message,
+                               cJSON_Duplicate(message, 1)))
+                die("%s: %s: failed to create handle_message_thread",
+                    __BASE_FILE__,
+                    __func__);
 
-        if (pthread_create(&handle_message_thread,
-                           NULL,
-                           maintenance_mode ? handle_message_in_maintenance_mode : handle_message,
-                           cJSON_Duplicate(message, 1)))
-            die("%s: %s: failed to create handle_message_thread",
-                __BASE_FILE__,
-                __func__);
-
-        pthread_detach(handle_message_thread);
+            pthread_detach(handle_message_thread);
+        }
     }
 }
 
@@ -470,7 +470,7 @@ static void handle_helpme_command(const int_fast64_t chat_id, const char *userna
             set_state(chat_id, "problem_description_state", 1);
             send_message_with_keyboard(chat_id,
                                        EMOJI_WRITE " Опишите вашу проблему\n\n"
-                                       " Отменить - /cancel.",
+                                       "Отменить - /cancel.",
                                        NOKEYBOARD);
         }
     }
@@ -511,16 +511,16 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
 
     char start_message[strlen(user_greeting) + strlen(bot_description) + MAX_USERNAME_SIZE + 6];
 
-    if (!username)
-        sprintf(start_message,
-                "%s\n\n%s",
-                user_greeting,
-                bot_description);
-    else
+    if (username)
         sprintf(start_message,
                 "%s, @%s\n\n%s",
                 user_greeting,
                 username,
+                bot_description);
+    else
+        sprintf(start_message,
+                "%s\n\n%s",
+                user_greeting,
                 bot_description);
 
     send_message_with_keyboard(chat_id,

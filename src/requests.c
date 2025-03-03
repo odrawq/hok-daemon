@@ -34,17 +34,17 @@
 #include "log.h"
 #include "requests.h"
 
-static size_t write_callback(void *contents,
-                             const size_t size,
-                             const size_t nmemb,
-                             void *userp);
-
 typedef struct
 {
     char *data;
     size_t size;
 }
 ServerResponse;
+
+static size_t write_callback(void *data,
+                             const size_t data_size,
+                             const size_t data_count,
+                             void *server_response);
 
 void init_requests_module(void)
 {
@@ -158,9 +158,9 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
             __BASE_FILE__,
             __func__);
 
-    char *encoded_message = curl_easy_escape(curl, message, 0);
+    char *escaped_message = curl_easy_escape(curl, message, 0);
 
-    if (!encoded_message)
+    if (!escaped_message)
         die("%s: %s: failed to escape message",
             __BASE_FILE__,
             __func__);
@@ -171,7 +171,7 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
             "&text=%s"
             "&reply_markup=%s",
             chat_id,
-            encoded_message,
+            escaped_message,
             keyboard);
 
     char url[MAX_URL_SIZE];
@@ -184,31 +184,29 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
 
     curl_easy_perform(curl);
 
-    curl_free(encoded_message);
+    curl_free(escaped_message);
     curl_easy_cleanup(curl);
 }
 
-static size_t write_callback(void *contents,
-                             const size_t size,
-                             const size_t nmemb,
-                             void *userp)
+static size_t write_callback(void *data,
+                             const size_t data_size,
+                             const size_t data_count,
+                             void *server_response)
 {
-    const size_t real_size = size * nmemb;
+    const size_t data_real_size = data_size * data_count;
 
-    ServerResponse *response = userp;
-    response->data = realloc(response->data, response->size + real_size + 1);
+    ServerResponse *response = server_response;
+    response->data = realloc(response->data, response->size + data_real_size + 1);
 
     if (!response->data)
         die("%s: %s: failed to reallocate memory for response->data",
             __BASE_FILE__,
             __func__);
 
-    memcpy(&(response->data[response->size]),
-           contents,
-           real_size);
+    memcpy(&(response->data[response->size]), data, data_real_size);
 
-    response->size += real_size;
+    response->size += data_real_size;
     response->data[response->size] = 0;
 
-    return real_size;
+    return data_real_size;
 }
