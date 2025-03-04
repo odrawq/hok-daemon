@@ -225,7 +225,9 @@ static void save_users(void)
     char *users_string = cJSON_PrintUnformatted(users_cache);
 
     if (!users_string)
-        die("%s: %s: failed to print users_cache");
+        die("%s: %s: failed to print users_cache",
+            __BASE_FILE__,
+            __func__);
 
     FILE *users_file = fopen(FILE_USERS, "w");
 
