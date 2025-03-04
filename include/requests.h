@@ -40,12 +40,12 @@
     void init_requests_module(void);
 
     /*
-     * Gets updates from the Telegram Bot API.
+     * Returns updates from the Telegram Bot API.
      */
     cJSON *get_updates(const int_fast32_t update_id);
 
     /*
-     * Gets a chat from the Telegram Bot API.
+     * Returns a chat from the Telegram Bot API.
      */
     cJSON *get_chat(const int_fast64_t chat_id);
 

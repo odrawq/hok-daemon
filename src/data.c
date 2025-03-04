@@ -110,10 +110,10 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems, const
         const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state"));
         const int problem_pending_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "problem_pending_state"));
 
-        if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||   // Only banned problems.
-            (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||   // Only pending problems.
-            (!banned_problems && !pending_problems && !(!account_ban_state && !problem_pending_state)) || // Only non-banned and non-pending problems.
-            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)))       // Both banned and pending problems.
+        if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||   // Banned problems.
+            (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||   // Pending problems.
+            (!banned_problems && !pending_problems && !(!account_ban_state && !problem_pending_state)) || // Non-banned and non-pending problems.
+            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)))       // Banned and pending problems.
             goto next;
 
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");
