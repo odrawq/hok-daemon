@@ -363,7 +363,7 @@ static void handle_problem(const int_fast64_t chat_id,
     {
         set_state(ROOT_CHAT_ID, "problem_pending_state", 0);
         send_message_with_keyboard(ROOT_CHAT_ID,
-                                   EMOJI_OK " Ваша проблема сохранена и будет автоматически закрыта через 21 день\n\n"
+                                   EMOJI_OK " Ваша проблема сохранена\n\n"
                                    "Надеюсь вам помогут как можно быстрее!",
                                    get_current_keyboard(ROOT_CHAT_ID));
     }
