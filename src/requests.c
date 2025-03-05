@@ -29,8 +29,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
+
 #include "log.h"
 #include "requests.h"
 
@@ -81,6 +83,7 @@ cJSON *get_updates(const int_fast32_t update_id)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
     const CURLcode code = curl_easy_perform(curl);
+
     curl_easy_cleanup(curl);
 
     if (code != CURLE_OK)
@@ -130,6 +133,7 @@ cJSON *get_chat(const int_fast64_t chat_id)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
     const CURLcode code = curl_easy_perform(curl);
+
     curl_easy_cleanup(curl);
 
     if (code != CURLE_OK)

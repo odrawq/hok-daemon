@@ -30,6 +30,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
+
 #include "log.h"
 
 static char *get_current_timestamp(void);
@@ -88,8 +89,8 @@ void die(const char *fmt, ...)
 static char *get_current_timestamp(void)
 {
     const time_t current_time = time(NULL);
-    static char timestamp[MAX_TIMESTAMP_SIZE + 1];
 
+    static char timestamp[MAX_TIMESTAMP_SIZE + 1];
     strftime(timestamp,
              sizeof timestamp,
              "[%Y-%m-%d %H:%M:%S]",

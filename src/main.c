@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <pwd.h>
+
 #include "version.h"
 #include "log.h"
 #include "requests.h"
@@ -47,6 +48,7 @@ static void handle_signal(const int signal);
 
 static pid_t pid;
 static char *mode;
+
 static int maintenance_mode = 0;
 
 int main(int argc, char **argv)

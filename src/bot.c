@@ -30,7 +30,9 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
+
 #include <cjson/cJSON.h>
+
 #include "config.h" // This file is created after the configure.sh successfully executed.
 #include "log.h"
 #include "requests.h"
@@ -63,6 +65,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
 
 static volatile int unset_expired_problems_thread_running = 0;
 static volatile int update_problems_usernames_thread_running = 0;
+
 static int_fast32_t last_update_id = 0;
 
 void start_bot(const int maintenance_mode)
@@ -246,7 +249,6 @@ static void handle_updates(cJSON *updates, const int maintenance_mode)
 static void *handle_message_in_maintenance_mode(void *cjson_message)
 {
     cJSON *message = cjson_message;
-
     const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(cJSON_GetObjectItem(message, "chat"), "id"));
 
     send_message_with_keyboard(chat_id,
