@@ -53,7 +53,7 @@ $(BUILD_DIR):
 
 $(BUILD_DIR)$(TARGET): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS)
-	@echo -e "\e[0;32;1mBuilding finished!\n$$($(BUILD_DIR)$(TARGET) -v) on $$(uname -mo)\e[0m"
+	@echo -e "\e[0;32;1mBuilding done!\n$$($(BUILD_DIR)$(TARGET) -v) on $$(uname -mo)\e[0m"
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c
 	$(CC) -c $< -o $@ -MMD $(CFLAGS)
@@ -63,7 +63,7 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%.c
 clean:
 	@echo -e "\e[0;33;1mCleaning build files...\e[0m"
 	rm -rf $(BUILD_DIR)
-	@echo -e "\e[0;32;1mCleaning finished!\e[0m"
+	@echo -e "\e[0;32;1mCleaning done!\e[0m"
 
 install:
 	@echo -e "\e[0;33;1mInstalling $(TARGET)...\e[0m"
@@ -92,12 +92,12 @@ install:
 	sudo chown -R $(TARGET):$(TARGET) $(LOG_DIR) $(DATA_DIR)
 	sudo chmod 700 $(LOG_DIR) $(DATA_DIR)
 
-	@echo -e "\e[0;32;1mInstallation finished!\e[0m"
+	@echo -e "\e[0;32;1mInstallation done!\e[0m"
 
 uninstall:
 	@echo -e "\e[0;33;1mDeleting $(TARGET)...\e[0m"
 	sudo rm -f $(BIN_DIR)$(TARGET)
-	@echo -e "\e[0;32;1mUninstallation finished!\e[0m"
+	@echo -e "\e[0;32;1mUninstallation done!\e[0m"
 
 purge: uninstall
 	@echo -e "\e[0;33;1mDeleting $(TARGET) files...\e[0m"
@@ -109,4 +109,4 @@ purge: uninstall
 		sudo userdel $(TARGET); \
 	fi
 
-	@echo -e "\e[0;32;1mPurging finished!\e[0m"
+	@echo -e "\e[0;32;1mPurging done!\e[0m"
