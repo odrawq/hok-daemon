@@ -29,6 +29,7 @@
     #define DATA_H
 
     #include <stdint.h>
+
     #include <cjson/cJSON.h>
 
     #define FILE_USERS "/var/lib/hok-daemon/users.json"

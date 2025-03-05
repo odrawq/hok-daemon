@@ -54,6 +54,7 @@
     #define MAX_COMMAND_UNBAN_SIZE   6
 
     #define NOKEYBOARD "{\"remove_keyboard\":true}"
+
     #define get_current_keyboard(chat_id) (has_problem(chat_id) ? \
                                            "{\"keyboard\":" \
                                            "[[{\"text\":\"" COMMAND_CLOSEPROBLEM "\"}," \

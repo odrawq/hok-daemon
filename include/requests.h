@@ -29,7 +29,9 @@
     #define REQUESTS_H
 
     #include <stdint.h>
+
     #include <cjson/cJSON.h>
+
     #include "config.h" // This file is created after the configure.sh successfully executed.
 
     #define BOT_API_URL "https://api.telegram.org/bot" BOT_TOKEN
