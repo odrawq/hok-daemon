@@ -60,7 +60,7 @@
     /*
      * Sets a user problem.
      */
-    void set_problem(const int_fast64_t chat_id, const char *problem_text);
+    void set_problem(const int_fast64_t chat_id, const char *problem_text, const int use_time_limit);
 
     /*
      * Unsets a user problem.

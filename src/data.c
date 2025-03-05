@@ -76,10 +76,10 @@ int has_problem(const int_fast64_t chat_id)
     return state;
 }
 
-void set_problem(const int_fast64_t chat_id, const char *problem_text)
+void set_problem(const int_fast64_t chat_id, const char *problem_text, const int use_time_limit)
 {
     cJSON *problem = cJSON_CreateObject();
-    cJSON_AddNumberToObject(problem, "time", time(NULL));
+    cJSON_AddNumberToObject(problem, "time", use_time_limit ? time(NULL) : 0);
     cJSON_AddStringToObject(problem, "text", problem_text);
 
     pthread_mutex_lock(&users_cache_mutex);
@@ -160,8 +160,9 @@ cJSON *get_expired_problems_chat_ids(void)
             goto next;
 
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");
+        const time_t problem_time = cJSON_GetNumberValue(cJSON_GetObjectItem(problem, "time"));
 
-        if (problem && difftime(time(NULL), cJSON_GetNumberValue(cJSON_GetObjectItem(problem, "time"))) > MAX_PROBLEM_SECONDS)
+        if (problem && problem_time && difftime(time(NULL), problem_time) > MAX_PROBLEM_SECONDS)
             cJSON_AddItemToArray(expired_problems_chat_ids, cJSON_CreateString(user->string));
 
     next:

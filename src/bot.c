@@ -202,7 +202,7 @@ static void *update_problems_usernames(void *_)
                     problem);
 
             unset_problem(chat_id);
-            set_problem(chat_id, username_with_problem);
+            set_problem(chat_id, username_with_problem, chat_id != ROOT_CHAT_ID);
 
             report("User %" PRIdFAST64
                    " changed username from '%s'"
@@ -350,7 +350,7 @@ static void handle_problem(const int_fast64_t chat_id,
             username,
             problem);
 
-    set_problem(chat_id, username_with_problem);
+    set_problem(chat_id, username_with_problem, !is_root_user);
     set_state(chat_id, "problem_description_state", 0);
 
     report("User %" PRIdFAST64
