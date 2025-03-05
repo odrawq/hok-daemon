@@ -132,7 +132,7 @@ static void *unset_expired_problems(void *_)
     {
         const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(expired_problems_chat_ids, i)), NULL, 10);
 
-        unset_problem(chat_id);
+        delete_problem(chat_id);
         set_state(chat_id, "problem_pending_state", 1);
 
         report("User %" PRIdFAST64
@@ -181,7 +181,7 @@ static void *update_problems_usernames(void *_)
 
         if (!current_username)
         {
-            unset_problem(chat_id);
+            delete_problem(chat_id);
             set_state(chat_id, "problem_pending_state", 1);
 
             report("User %" PRIdFAST64
@@ -201,8 +201,7 @@ static void *update_problems_usernames(void *_)
                     current_username,
                     problem);
 
-            unset_problem(chat_id);
-            set_problem(chat_id, username_with_problem, chat_id != ROOT_CHAT_ID);
+            modify_problem(chat_id, username_with_problem);
 
             report("User %" PRIdFAST64
                    " changed username from '%s'"
@@ -350,7 +349,7 @@ static void handle_problem(const int_fast64_t chat_id,
             username,
             problem);
 
-    set_problem(chat_id, username_with_problem, !is_root_user);
+    create_problem(chat_id, username_with_problem, !is_root_user);
     set_state(chat_id, "problem_description_state", 0);
 
     report("User %" PRIdFAST64
@@ -487,7 +486,7 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
                                        "");
         else
         {
-            unset_problem(chat_id);
+            delete_problem(chat_id);
             set_state(chat_id, "problem_pending_state", 1);
 
             report("User %" PRIdFAST64
@@ -658,7 +657,7 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
                                            "");
             else
             {
-                unset_problem(target_chat_id);
+                delete_problem(target_chat_id);
 
                 report("User %" PRIdFAST64
                        " declined user %" PRIdFAST64
@@ -789,7 +788,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
             else
             {
                 if (has_problem(target_chat_id))
-                    unset_problem(target_chat_id);
+                    delete_problem(target_chat_id);
 
                 set_state(target_chat_id, "problem_pending_state", 1);
                 set_state(target_chat_id, "account_ban_state", 0);

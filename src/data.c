@@ -76,7 +76,7 @@ int has_problem(const int_fast64_t chat_id)
     return state;
 }
 
-void set_problem(const int_fast64_t chat_id, const char *problem_text, const int use_time_limit)
+void create_problem(const int_fast64_t chat_id, const char *problem_text, const int use_time_limit)
 {
     cJSON *problem = cJSON_CreateObject();
     cJSON_AddNumberToObject(problem, "time", use_time_limit ? time(NULL) : 0);
@@ -90,7 +90,14 @@ void set_problem(const int_fast64_t chat_id, const char *problem_text, const int
     pthread_mutex_unlock(&users_cache_mutex);
 }
 
-void unset_problem(const int_fast64_t chat_id)
+void modify_problem(const int_fast64_t chat_id, const char *problem_text)
+{
+    pthread_mutex_lock(&users_cache_mutex);
+    cJSON_SetValuestring(cJSON_GetObjectItem(cJSON_GetObjectItem(get_or_create_user(chat_id, 1), "problem"), "text"), problem_text);
+    pthread_mutex_unlock(&users_cache_mutex);
+}
+
+void delete_problem(const int_fast64_t chat_id)
 {
     pthread_mutex_lock(&users_cache_mutex);
 

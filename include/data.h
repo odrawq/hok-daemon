@@ -58,14 +58,19 @@
     int has_problem(const int_fast64_t chat_id);
 
     /*
-     * Sets a user problem.
+     * Creates a user problem.
      */
-    void set_problem(const int_fast64_t chat_id, const char *problem_text, const int use_time_limit);
+    void create_problem(const int_fast64_t chat_id, const char *problem_text, const int use_time_limit);
 
     /*
-     * Unsets a user problem.
+     * Modifies a user problem.
      */
-    void unset_problem(const int_fast64_t chat_id);
+    void modify_problem(const int_fast64_t chat_id, const char *problem_text);
+
+    /*
+     * Deletes a user problem.
+     */
+    void delete_problem(const int_fast64_t chat_id);
 
     /*
      * Returns all specified users problems.
