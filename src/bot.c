@@ -131,7 +131,9 @@ static void *unset_expired_problems(void *_)
     for (int i = 0; i < expired_problems_chat_ids_size; ++i)
     {
         const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(expired_problems_chat_ids, i)), NULL, 10);
+
         unset_problem(chat_id);
+        set_state(chat_id, "problem_pending_state", 1);
 
         report("User %" PRIdFAST64
                " problem expired and was closed",
@@ -180,6 +182,7 @@ static void *update_problems_usernames(void *_)
         if (!current_username)
         {
             unset_problem(chat_id);
+            set_state(chat_id, "problem_pending_state", 1);
 
             report("User %" PRIdFAST64
                    " removed username '%s' and problem was closed",
@@ -347,8 +350,8 @@ static void handle_problem(const int_fast64_t chat_id,
             username,
             problem);
 
-    set_state(chat_id, "problem_description_state", 0);
     set_problem(chat_id, username_with_problem);
+    set_state(chat_id, "problem_description_state", 0);
 
     report("User %" PRIdFAST64
            " with username '%s'"
@@ -357,32 +360,24 @@ static void handle_problem(const int_fast64_t chat_id,
            username,
            problem);
 
-    if (get_state(chat_id, "problem_pending_state"))
+    if (is_root_user)
     {
-        if (is_root_user)
-            set_state(ROOT_CHAT_ID, "problem_pending_state", 0);
-        else
-        {
-            send_message_with_keyboard(chat_id,
-                                       EMOJI_INFO " Перед публикацией ваша проблема должна пройти проверку\n\n"
-                                       "Пожалуйста, ожидайте!",
-                                       get_current_keyboard(chat_id));
-            send_message_with_keyboard(ROOT_CHAT_ID,
-                                       EMOJI_INFO " Появилась новая проблема для проверки",
-                                       "");
-            return;
-        }
-    }
-
-    send_message_with_keyboard(chat_id,
-                               EMOJI_OK " Ваша проблема сохранена и будет автоматически закрыта через 21 день\n\n"
-                               "Надеюсь вам помогут как можно быстрее!",
-                               get_current_keyboard(chat_id));
-
-    if (!is_root_user)
+        set_state(ROOT_CHAT_ID, "problem_pending_state", 0);
         send_message_with_keyboard(ROOT_CHAT_ID,
-                                   EMOJI_INFO " Появилась новая проблема",
+                                   EMOJI_OK " Ваша проблема сохранена и будет автоматически закрыта через 21 день\n\n"
+                                   "Надеюсь вам помогут как можно быстрее!",
+                                   get_current_keyboard(ROOT_CHAT_ID));
+    }
+    else
+    {
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_INFO " Перед публикацией ваша проблема должна пройти проверку\n\n"
+                                   "Пожалуйста, ожидайте!",
+                                   get_current_keyboard(chat_id));
+        send_message_with_keyboard(ROOT_CHAT_ID,
+                                   EMOJI_INFO " Появилась новая проблема для проверки",
                                    "");
+    }
 }
 
 static void handle_command(const int_fast64_t chat_id,
@@ -493,6 +488,7 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
         else
         {
             unset_problem(chat_id);
+            set_state(chat_id, "problem_pending_state", 1);
 
             report("User %" PRIdFAST64
                    " closed problem",
