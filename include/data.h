@@ -42,14 +42,15 @@
     void init_data_module(void);
 
     /*
-     * Returns a user state.
-     * User state can be 0 or 1.
+     * Returns a user state, which can be 0 or 1.
+     * state_name must be 'account_ban_state', 'problem_pending_state' or 'problem_description_state'.
      */
     int get_state(const int_fast64_t chat_id, const char *state_name);
 
     /*
      * Sets a user state.
-     * User state can be 0 or 1.
+     * state_name must be 'account_ban_state', 'problem_pending_state' or 'problem_description_state'.
+     * state_value must be 0 or 1.
      */
     void set_state(const int_fast64_t chat_id, const char *state_name, const int state_value);
 
@@ -75,7 +76,7 @@
 
     /*
      * Returns all specified users problems.
-     * Users problems can be banned, pending, non-banned and non-pending, banned and pending.
+     * Users problems can be banned, pending, non-banned and non-pending or banned and pending.
      */
     cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems);
 

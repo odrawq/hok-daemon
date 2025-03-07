@@ -36,17 +36,17 @@
     #define EMOJI_GREETING  "\U0001F44B"
     #define EMOJI_INFO      "\U00002139"
 
+    #define COMMAND_HELPSOMEONE  EMOJI_SEARCH    " Помочь кому-нибудь"
+    #define COMMAND_HELPME       EMOJI_ATTENTION " Мне нужна помощь"
+    #define COMMAND_CLOSEPROBLEM EMOJI_OK        " Моя проблема решена"
+    #define COMMAND_START        "/start"
     #define COMMAND_PENDINGLIST  "/pendinglist"
     #define COMMAND_CONFIRM      "/confirm"
     #define COMMAND_DECLINE      "/decline"
     #define COMMAND_BANLIST      "/banlist"
     #define COMMAND_BAN          "/ban"
     #define COMMAND_UNBAN        "/unban"
-    #define COMMAND_START        "/start"
     #define COMMAND_CANCEL       "/cancel"
-    #define COMMAND_HELPME       EMOJI_ATTENTION " Мне нужна помощь"
-    #define COMMAND_HELPSOMEONE  EMOJI_SEARCH    " Помочь кому-нибудь"
-    #define COMMAND_CLOSEPROBLEM EMOJI_OK        " Моя проблема решена"
 
     #define MAX_COMMAND_CONFIRM_SIZE 8
     #define MAX_COMMAND_DECLINE_SIZE 8
