@@ -93,7 +93,10 @@ void create_problem(const int_fast64_t chat_id, const char *problem_text, const 
 void modify_problem(const int_fast64_t chat_id, const char *problem_text)
 {
     pthread_mutex_lock(&users_cache_mutex);
-    cJSON_SetValuestring(cJSON_GetObjectItem(cJSON_GetObjectItem(get_or_create_user(chat_id, 1), "problem"), "text"), problem_text);
+
+    cJSON_SetValuestring(cJSON_GetObjectItem(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "problem"), "text"), problem_text);
+    save_users();
+
     pthread_mutex_unlock(&users_cache_mutex);
 }
 
