@@ -539,7 +539,7 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
                                    "/ban <id>\n\n"
                                    EMOJI_INFO " Разблокировать пользователя\n"
                                    "/unban <id>\n\n"
-                                   "Вместо <id> нужно указать идентификатор пользователя. "
+                                   "Вместо <id> нужно указать идентификатор чата. "
                                    "Идентификатор находится перед проблемой пользователя в круглых скобках.",
                                    "");
 }
@@ -582,7 +582,7 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
 
         if (!*arg)
             send_message_with_keyboard(ROOT_CHAT_ID,
-                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       EMOJI_FAILED " Извините, вы не указали идентификатор чата для одобрения проблемы",
                                        "");
         else
         {
@@ -591,15 +591,15 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, вы указали некорректный id",
+                                           EMOJI_FAILED " Извините, вы указали некорректный идентификатор чата для одобрения проблемы",
                                            "");
             else if (!has_problem(target_chat_id))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, у пользователя нет проблемы",
+                                           EMOJI_FAILED " Извините, для одобрения проблемы у пользователя должна быть проблема",
                                            "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, уже существующая проблема не может быть одобрена",
+                                           EMOJI_FAILED " Извините, уже одобренная проблема не может быть одобрена",
                                            "");
             else
             {
@@ -636,7 +636,7 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
 
         if (!*arg)
             send_message_with_keyboard(ROOT_CHAT_ID,
-                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       EMOJI_FAILED " Извините, вы не указали идентификатор чата для отклонения проблемы",
                                        "");
         else
         {
@@ -645,15 +645,15 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, вы указали некорректный id",
+                                           EMOJI_FAILED " Извините, вы указали некорректный идентификатор чата для отклонения проблемы",
                                            "");
             else if (!has_problem(target_chat_id))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, у пользователя нет проблемы",
+                                           EMOJI_FAILED " Извините, для отклонения проблемы у пользователя должна быть проблема",
                                            "");
             else if (!get_state(target_chat_id, "problem_pending_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, уже существующая проблема не может быть отклонена",
+                                           EMOJI_FAILED " Извините, уже одобренная проблема не может быть отклонена",
                                            "");
             else
             {
@@ -715,7 +715,7 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
 
         if (!*arg)
             send_message_with_keyboard(ROOT_CHAT_ID,
-                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       EMOJI_FAILED " Извините, вы не указали идентификатор чата для блокировки пользователя",
                                        "");
         else
         {
@@ -724,7 +724,7 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, вы указали некорректный id",
+                                           EMOJI_FAILED " Извините, вы указали некорректный идентификатор чата для блокировки пользователя",
                                            "");
             else if (target_chat_id == ROOT_CHAT_ID)
                 send_message_with_keyboard(ROOT_CHAT_ID,
@@ -736,7 +736,7 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
                                            "");
             else if (!has_problem(target_chat_id))
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, у пользователя нет проблемы",
+                                           EMOJI_FAILED " Извините, для блокировки пользователя у него должна быть проблема",
                                            "");
             else
             {
@@ -774,7 +774,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
 
         if (!*arg)
             send_message_with_keyboard(ROOT_CHAT_ID,
-                                       EMOJI_FAILED " Извините, вы не указали id",
+                                       EMOJI_FAILED " Извините, вы не указали идентификатор чата для разблокировки пользователя",
                                        "");
         else
         {
@@ -783,7 +783,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
 
             if (*end || end == arg)
                 send_message_with_keyboard(ROOT_CHAT_ID,
-                                           EMOJI_FAILED " Извините, вы указали некорректный id",
+                                           EMOJI_FAILED " Извините, вы указали некорректный идентификатор чата для разблокировки пользователя",
                                            "");
             else if (!get_state(target_chat_id, "account_ban_state"))
                 send_message_with_keyboard(ROOT_CHAT_ID,
