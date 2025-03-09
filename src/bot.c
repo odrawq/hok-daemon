@@ -734,6 +734,10 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
                 send_message_with_keyboard(ROOT_CHAT_ID,
                                            EMOJI_FAILED " Извините, пользователь уже заблокирован",
                                            "");
+            else if (!has_problem(target_chat_id))
+                send_message_with_keyboard(ROOT_CHAT_ID,
+                                           EMOJI_FAILED " Извините, у пользователя нет проблемы",
+                                           "");
             else
             {
                 set_state(target_chat_id, "account_ban_state", 1);
@@ -787,9 +791,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int is_root_u
                                            "");
             else
             {
-                if (has_problem(target_chat_id))
-                    delete_problem(target_chat_id);
-
+                delete_problem(target_chat_id);
                 set_state(target_chat_id, "problem_pending_state", 1);
                 set_state(target_chat_id, "account_ban_state", 0);
 
