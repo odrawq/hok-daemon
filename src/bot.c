@@ -45,23 +45,23 @@ static void handle_updates(cJSON *updates, const int maintenance_mode);
 static void *handle_message_in_maintenance_mode(void *cjson_message);
 static void *handle_message(void *cjson_message);
 static void handle_problem(const int_fast64_t chat_id,
-                           const int is_root_user,
+                           const int root_access,
                            const char *username,
                            const char *problem);
 static void handle_command(const int_fast64_t chat_id,
-                           const int is_root_user,
+                           const int root_access,
                            const char *username,
                            const char *command);
-static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user);
+static void handle_helpsomeone_command(const int_fast64_t chat_id, const int root_access);
 static void handle_helpme_command(const int_fast64_t chat_id, const char *username);
 static void handle_closeproblem_command(const int_fast64_t chat_id);
-static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username);
-static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_root_user);
-static void handle_confirm_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
-static void handle_decline_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
-static void handle_banlist_command(const int_fast64_t chat_id, const int is_root_user);
-static void handle_ban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
-static void handle_unban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg);
+static void handle_start_command(const int_fast64_t chat_id, const int root_access, const char *username);
+static void handle_pendinglist_command(const int_fast64_t chat_id, const int root_access);
+static void handle_confirm_command(const int_fast64_t chat_id, const int root_access, const char *arg);
+static void handle_decline_command(const int_fast64_t chat_id, const int root_access, const char *arg);
+static void handle_banlist_command(const int_fast64_t chat_id, const int root_access);
+static void handle_ban_command(const int_fast64_t chat_id, const int root_access, const char *arg);
+static void handle_unban_command(const int_fast64_t chat_id, const int root_access, const char *arg);
 
 static volatile int unset_expired_problems_thread_running = 0;
 static volatile int update_problems_usernames_thread_running = 0;
@@ -269,11 +269,11 @@ static void *handle_message(void *cjson_message)
     const cJSON *chat = cJSON_GetObjectItem(message, "chat");
     const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(chat, "id"));
 
-    const int is_root_user = (chat_id == ROOT_CHAT_ID);
+    const int root_access = (chat_id == ROOT_CHAT_ID);
 
     if (get_state(chat_id, "account_ban_state"))
     {
-        if (is_root_user)
+        if (root_access)
             set_state(ROOT_CHAT_ID, "account_ban_state", 0);
         else
         {
@@ -289,12 +289,12 @@ static void *handle_message(void *cjson_message)
 
     if (get_state(chat_id, "problem_description_state"))
         handle_problem(chat_id,
-                       is_root_user,
+                       root_access,
                        username ? username->valuestring : NULL,
                        text ? text->valuestring : NULL);
     else
         handle_command(chat_id,
-                       is_root_user,
+                       root_access,
                        username ? username->valuestring : NULL,
                        text ? text->valuestring : NULL);
 
@@ -304,7 +304,7 @@ exit:
 }
 
 static void handle_problem(const int_fast64_t chat_id,
-                           const int is_root_user,
+                           const int root_access,
                            const char *username,
                            const char *problem)
 {
@@ -349,7 +349,7 @@ static void handle_problem(const int_fast64_t chat_id,
             username,
             problem);
 
-    create_problem(chat_id, username_with_problem, !is_root_user);
+    create_problem(chat_id, username_with_problem, !root_access);
     set_state(chat_id, "problem_description_state", 0);
 
     report("User %" PRIdFAST64
@@ -359,7 +359,7 @@ static void handle_problem(const int_fast64_t chat_id,
            username,
            problem);
 
-    if (is_root_user)
+    if (root_access)
     {
         set_state(ROOT_CHAT_ID, "problem_pending_state", 0);
         send_message_with_keyboard(ROOT_CHAT_ID,
@@ -380,7 +380,7 @@ static void handle_problem(const int_fast64_t chat_id,
 }
 
 static void handle_command(const int_fast64_t chat_id,
-                           const int is_root_user,
+                           const int root_access,
                            const char *username,
                            const char *command)
 {
@@ -393,32 +393,32 @@ static void handle_command(const int_fast64_t chat_id,
     }
 
     if (!strcmp(command, COMMAND_HELPSOMEONE))
-        handle_helpsomeone_command(chat_id, is_root_user);
+        handle_helpsomeone_command(chat_id, root_access);
     else if (!strcmp(command, COMMAND_HELPME))
         handle_helpme_command(chat_id, username);
     else if (!strcmp(command, COMMAND_CLOSEPROBLEM))
         handle_closeproblem_command(chat_id);
     else if (!strcmp(command, COMMAND_START))
-        handle_start_command(chat_id, is_root_user, username);
+        handle_start_command(chat_id, root_access, username);
     else if (!strcmp(command, COMMAND_PENDINGLIST))
-        handle_pendinglist_command(chat_id, is_root_user);
+        handle_pendinglist_command(chat_id, root_access);
     else if (!strncmp(command, COMMAND_CONFIRM, MAX_COMMAND_CONFIRM_SIZE))
         handle_confirm_command(chat_id,
-                               is_root_user,
+                               root_access,
                                command + MAX_COMMAND_CONFIRM_SIZE);
     else if (!strncmp(command, COMMAND_DECLINE, MAX_COMMAND_DECLINE_SIZE))
         handle_decline_command(chat_id,
-                               is_root_user,
+                               root_access,
                                command + MAX_COMMAND_DECLINE_SIZE);
     else if (!strcmp(command, COMMAND_BANLIST))
-        handle_banlist_command(chat_id, is_root_user);
+        handle_banlist_command(chat_id, root_access);
     else if (!strncmp(command, COMMAND_BAN, MAX_COMMAND_BAN_SIZE))
         handle_ban_command(chat_id,
-                           is_root_user,
+                           root_access,
                            command + MAX_COMMAND_BAN_SIZE);
     else if (!strncmp(command, COMMAND_UNBAN, MAX_COMMAND_UNBAN_SIZE))
         handle_unban_command(chat_id,
-                             is_root_user,
+                             root_access,
                              command + MAX_COMMAND_UNBAN_SIZE);
     else if (!strcmp(command, COMMAND_CANCEL))
         send_message_with_keyboard(chat_id,
@@ -430,9 +430,9 @@ static void handle_command(const int_fast64_t chat_id,
                                    "");
 }
 
-static void handle_helpsomeone_command(const int_fast64_t chat_id, const int is_root_user)
+static void handle_helpsomeone_command(const int_fast64_t chat_id, const int root_access)
 {
-    cJSON *problems = get_problems(is_root_user, 0, 0);
+    cJSON *problems = get_problems(root_access, 0, 0);
     const int problems_size = cJSON_GetArraySize(problems);
 
     if (!problems_size)
@@ -501,7 +501,7 @@ static void handle_closeproblem_command(const int_fast64_t chat_id)
     }
 }
 
-static void handle_start_command(const int_fast64_t chat_id, const int is_root_user, const char *username)
+static void handle_start_command(const int_fast64_t chat_id, const int root_access, const char *username)
 {
     const char *user_greeting = EMOJI_GREETING " Добро пожаловать";
     const char *bot_description = "Оказывайте поддержку и помощь другим, а также получайте решения собственных проблем!";
@@ -524,7 +524,7 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
                                start_message,
                                get_current_keyboard(chat_id));
 
-    if (is_root_user)
+    if (root_access)
         send_message_with_keyboard(ROOT_CHAT_ID,
                                    EMOJI_ATTENTION " ВЫ ЯВЛЯЕТЕСЬ АДМИНИСТРАТОРОМ\n\n"
                                    EMOJI_INFO " Вывести проблемы для проверки\n"
@@ -544,9 +544,9 @@ static void handle_start_command(const int_fast64_t chat_id, const int is_root_u
                                    "");
 }
 
-static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_root_user)
+static void handle_pendinglist_command(const int_fast64_t chat_id, const int root_access)
 {
-    if (!is_root_user)
+    if (!root_access)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
                                    "");
@@ -569,9 +569,9 @@ static void handle_pendinglist_command(const int_fast64_t chat_id, const int is_
     }
 }
 
-static void handle_confirm_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
+static void handle_confirm_command(const int_fast64_t chat_id, const int root_access, const char *arg)
 {
-    if (!is_root_user)
+    if (!root_access)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
                                    "");
@@ -623,9 +623,9 @@ static void handle_confirm_command(const int_fast64_t chat_id, const int is_root
     }
 }
 
-static void handle_decline_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
+static void handle_decline_command(const int_fast64_t chat_id, const int root_access, const char *arg)
 {
-    if (!is_root_user)
+    if (!root_access)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
                                    "");
@@ -677,9 +677,9 @@ static void handle_decline_command(const int_fast64_t chat_id, const int is_root
     }
 }
 
-static void handle_banlist_command(const int_fast64_t chat_id, const int is_root_user)
+static void handle_banlist_command(const int_fast64_t chat_id, const int root_access)
 {
-    if (!is_root_user)
+    if (!root_access)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
                                    "");
@@ -702,9 +702,9 @@ static void handle_banlist_command(const int_fast64_t chat_id, const int is_root
     }
 }
 
-static void handle_ban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
+static void handle_ban_command(const int_fast64_t chat_id, const int root_access, const char *arg)
 {
-    if (!is_root_user)
+    if (!root_access)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
                                    "");
@@ -761,9 +761,9 @@ static void handle_ban_command(const int_fast64_t chat_id, const int is_root_use
     }
 }
 
-static void handle_unban_command(const int_fast64_t chat_id, const int is_root_user, const char *arg)
+static void handle_unban_command(const int_fast64_t chat_id, const int root_access, const char *arg)
 {
-    if (!is_root_user)
+    if (!root_access)
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, у вас недостаточно прав",
                                    "");

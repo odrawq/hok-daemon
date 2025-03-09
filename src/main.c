@@ -104,13 +104,13 @@ static void handle_args(int argc, char **argv)
         switch (opt)
         {
             case 'h':
-                printf("Usage: hok-daemon [options]\n"
-                       "\nDaemon for controlling the 'Hands of Kindness' telegram bot.\n"
-                       "\nOptions:\n"
+                printf("Usage: hok-daemon [option]\n"
+                       "Daemon for controlling the 'Hands of Kindness' telegram bot.\n\n"
+                       "Options:\n"
                        "  -h, --help           print this help and exit\n"
                        "  -v, --version        print the hok-daemon version and exit\n"
-                       "  -m, --maintenance    start the hok-daemon in maintenance mode\n"
-                       "\nTo start hok-daemon, start it under the hok-daemon user.\n"
+                       "  -m, --maintenance    run the hok-daemon in maintenance mode\n"
+                       "\nTo run hok-daemon, run it as the hok-daemon user.\n"
                        "\nPlease send bug reports to: <odrawq.qwardo@gmail.com>\n");
                 exit(EXIT_SUCCESS);
 
@@ -154,7 +154,7 @@ static void handle_args(int argc, char **argv)
 }
 
 /*
- * Checks the user under which the process runs.
+ * Checks the user running the process.
  * If the user is not hok-daemon, terminates the process.
  */
 static void check_user(void)
