@@ -34,10 +34,11 @@
 
     #define FILE_USERS "/var/lib/hok-daemon/users.json"
 
-    #define MAX_USERNAME_SIZE   32
-    #define MAX_CHAT_ID_SIZE    20
-    #define MAX_PROBLEM_SIZE    1024
-    #define MAX_PROBLEM_SECONDS 1814400
+    #define MAX_USERNAME_SIZE 32
+    #define MAX_CHAT_ID_SIZE  20
+    #define MAX_PROBLEM_SIZE  1024
+
+    #define MAX_PROBLEM_DURATION 1814400
 
     void init_data_module(void);
 
