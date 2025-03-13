@@ -33,11 +33,13 @@ CC      := gcc
 CFLAGS  := -Wall -Wextra -O2 -Iinclude/ -MMD
 LDFLAGS := -lpthread -lcurl -lcjson
 
-SRC_DIR   := src/
-BUILD_DIR := build/
-BIN_DIR   := /usr/local/bin/
-LOG_DIR   := /var/log/
-DATA_DIR  := /var/lib/
+INIT_DIR    := init/
+SRC_DIR     := src/
+BUILD_DIR   := build/
+SYSTEMD_DIR := /etc/systemd/system/
+BIN_DIR     := /usr/local/bin/
+LOG_DIR     := /var/log/
+DATA_DIR    := /var/lib/
 
 USERS_FILE     := users.json
 INFO_LOG_FILE  := info_log
@@ -89,6 +91,10 @@ install:
 	sudo chown -R $(TARGET):$(TARGET) $(LOG_DIR)$(TARGET)/ $(DATA_DIR)$(TARGET)/
 	sudo chmod 700 $(LOG_DIR)$(TARGET)/ $(DATA_DIR)$(TARGET)/
 
+	@echo -e '\e[0;33;1mChecking for systemd...\e[0m'
+
+	which systemctl > /dev/null 2>&1 && sudo cp $(INIT_DIR)systemd/*.service $(SYSTEMD_DIR) && sudo systemctl daemon-reload || true
+
 	@echo -e '\e[0;32;1mInstallation done!\e[0m'
 
 uninstall:
@@ -106,6 +112,10 @@ purge: uninstall
 	@echo -e '\e[0;33;1mDeleting $(TARGET) user...\e[0m'
 
 	id -u $(TARGET) > /dev/null 2>&1 && sudo userdel $(TARGET) || true
+
+	@echo -e '\e[0;33;1mChecking for systemd...\e[0m'
+
+	which systemctl > /dev/null 2>&1 && sudo rm -f $(SYSTEMD_DIR)$(TARGET)*.service && sudo systemctl daemon-reload || true
 
 	@echo -e '\e[0;32;1mPurging done!\e[0m'
 
