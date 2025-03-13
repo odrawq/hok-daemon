@@ -39,6 +39,9 @@
     #define MAX_URL_SIZE        512
     #define MAX_POSTFIELDS_SIZE 4096
 
+    #define MAX_CONNECT_TIMEOUT  10
+    #define MAX_RESPONSE_TIMEOUT 20
+
     void init_requests_module(void);
 
     /*
