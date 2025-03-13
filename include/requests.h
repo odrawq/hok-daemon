@@ -42,6 +42,8 @@
     #define MAX_CONNECT_TIMEOUT  10
     #define MAX_RESPONSE_TIMEOUT 20
 
+    #define MAX_REQUEST_RETRIES 3
+
     void init_requests_module(void);
 
     /*
