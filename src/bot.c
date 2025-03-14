@@ -552,7 +552,7 @@ static void handle_pendinglist_command(const int_fast64_t chat_id, const int roo
                                    "");
     else
     {
-        cJSON *problems = get_problems(1, 0, 1);
+        cJSON *problems = get_problems(1, 1, 0);
         const int problems_size = cJSON_GetArraySize(problems);
 
         if (!problems_size)
@@ -685,7 +685,7 @@ static void handle_banlist_command(const int_fast64_t chat_id, const int root_ac
                                    "");
     else
     {
-        cJSON *problems = get_problems(1, 1, 0);
+        cJSON *problems = get_problems(1, 0, 1);
         const int problems_size = cJSON_GetArraySize(problems);
 
         if (!problems_size)

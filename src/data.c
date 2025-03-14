@@ -110,7 +110,7 @@ void delete_problem(const int_fast64_t chat_id)
     pthread_mutex_unlock(&users_cache_mutex);
 }
 
-cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems)
+cJSON *get_problems(const int include_chat_ids, const int pending_problems, const int banned_problems)
 {
     cJSON *problems = cJSON_CreateArray();
 
@@ -119,13 +119,13 @@ cJSON *get_problems(const int include_chat_ids, const int banned_problems, const
 
     while (user)
     {
-        const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state"));
         const int problem_pending_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "problem_pending_state"));
+        const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state"));
 
-        if ((banned_problems && !pending_problems && !(account_ban_state && !problem_pending_state)) ||   // Skipping non-banned problem.
-            (!banned_problems && pending_problems && !(!account_ban_state && problem_pending_state)) ||   // Skipping non-pending problems.
-            (!banned_problems && !pending_problems && !(!account_ban_state && !problem_pending_state)) || // Skipping banned and pending problems.
-            (banned_problems && pending_problems && !(account_ban_state && problem_pending_state)))       // Skipping non-banned and non-pending problems.
+        if ((!pending_problems && !banned_problems && (problem_pending_state || account_ban_state)) || // Skipping pending and banned problem.
+            (pending_problems && !banned_problems && (!problem_pending_state || account_ban_state)) || // Skipping non-pending problem.
+            (!pending_problems && banned_problems && (problem_pending_state || !account_ban_state)) || // Skipping non-banned problem.
+            (pending_problems && banned_problems && (!problem_pending_state || !account_ban_state)))   // Skipping non-banned and non-pending problem.
             goto next;
 
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");
@@ -165,14 +165,14 @@ cJSON *get_expired_problems_chat_ids(void)
 
     while (user)
     {
-        if (cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state")) ||
-            cJSON_GetNumberValue(cJSON_GetObjectItem(user, "problem_pending_state")))
+        if (cJSON_GetNumberValue(cJSON_GetObjectItem(user, "problem_pending_state")) ||
+            cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state")))
             goto next;
 
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");
         const time_t problem_time = cJSON_GetNumberValue(cJSON_GetObjectItem(problem, "time"));
 
-        if (problem && problem_time && difftime(time(NULL), problem_time) > MAX_PROBLEM_DURATION)
+        if (problem && problem_time && difftime(time(NULL), problem_time) > MAX_PROBLEM_LIFETIME)
             cJSON_AddItemToArray(expired_problems_chat_ids, cJSON_CreateString(user->string));
 
     next:

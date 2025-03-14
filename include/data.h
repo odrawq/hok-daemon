@@ -38,7 +38,7 @@
     #define MAX_CHAT_ID_SIZE  20
     #define MAX_PROBLEM_SIZE  1024
 
-    #define MAX_PROBLEM_DURATION 1814400
+    #define MAX_PROBLEM_LIFETIME 1814400 // 21 days.
 
     void init_data_module(void);
 
@@ -79,7 +79,7 @@
      * Returns all specified users problems.
      * Users problems can be banned, pending, non-banned and non-pending or banned and pending.
      */
-    cJSON *get_problems(const int include_chat_ids, const int banned_problems, const int pending_problems);
+    cJSON *get_problems(const int include_chat_ids, const int pending_problems, const int banned_problems);
 
     /*
      * Returns all expired users problems chat ids.
