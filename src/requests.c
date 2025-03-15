@@ -74,9 +74,10 @@ cJSON *get_updates(const int_fast32_t update_id)
 
     char url[MAX_URL_SIZE];
     sprintf(url,
-            "%s/getUpdates?offset=%" PRIdFAST32,
+            "%s/getUpdates?offset=%" PRIdFAST32 "&timeout=%d",
             BOT_API_URL,
-            update_id);
+            update_id,
+            MAX_RESPONSE_TIMEOUT);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
