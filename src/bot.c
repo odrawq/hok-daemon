@@ -39,7 +39,7 @@
 #include "data.h"
 #include "bot.h"
 
-static void *unset_expired_problems(void *_);
+static void *delete_expired_problems(void *_);
 static void *update_problems_usernames(void *_);
 static void handle_updates(cJSON *updates, const int maintenance_mode);
 static void *handle_message_in_maintenance_mode(void *cjson_message);
@@ -63,7 +63,7 @@ static void handle_banlist_command(const int_fast64_t chat_id, const int root_ac
 static void handle_ban_command(const int_fast64_t chat_id, const int root_access, const char *arg);
 static void handle_unban_command(const int_fast64_t chat_id, const int root_access, const char *arg);
 
-static volatile int unset_expired_problems_thread_running = 0;
+static volatile int delete_expired_problems_thread_running = 0;
 static volatile int update_problems_usernames_thread_running = 0;
 
 static int_fast32_t last_update_id = 0;
@@ -74,21 +74,21 @@ void start_bot(const int maintenance_mode)
     {
         if (!maintenance_mode)
         {
-            if (!unset_expired_problems_thread_running)
+            if (!delete_expired_problems_thread_running)
             {
-                pthread_t unset_expired_problems_thread;
+                pthread_t delete_expired_problems_thread;
 
-                if (pthread_create(&unset_expired_problems_thread,
+                if (pthread_create(&delete_expired_problems_thread,
                                    NULL,
-                                   unset_expired_problems,
+                                   delete_expired_problems,
                                    NULL))
-                    die("%s: %s: failed to create unset_expired_problems_thread",
+                    die("%s: %s: failed to create delete_expired_problems_thread",
                         __BASE_FILE__,
                         __func__);
                 else
                 {
-                    unset_expired_problems_thread_running = 1;
-                    pthread_detach(unset_expired_problems_thread);
+                    delete_expired_problems_thread_running = 1;
+                    pthread_detach(delete_expired_problems_thread);
                 }
             }
 
@@ -121,16 +121,16 @@ void start_bot(const int maintenance_mode)
     }
 }
 
-static void *unset_expired_problems(void *_)
+static void *delete_expired_problems(void *_)
 {
     (void) _;
 
-    cJSON *expired_problems_chat_ids = get_expired_problems_chat_ids();
-    const int expired_problems_chat_ids_size = cJSON_GetArraySize(expired_problems_chat_ids);
+    cJSON *chat_ids = get_expired_problems_chat_ids();
+    const int chat_ids_size = cJSON_GetArraySize(chat_ids);
 
-    for (int i = 0; i < expired_problems_chat_ids_size; ++i)
+    for (int i = 0; i < chat_ids_size; ++i)
     {
-        const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(expired_problems_chat_ids, i)), NULL, 10);
+        const int_fast64_t chat_id = strtoll(cJSON_GetStringValue(cJSON_GetArrayItem(chat_ids, i)), NULL, 10);
 
         delete_problem(chat_id);
         set_state(chat_id, "problem_pending_state", 1);
@@ -145,8 +145,8 @@ static void *unset_expired_problems(void *_)
                                    get_current_keyboard(chat_id));
     }
 
-    cJSON_Delete(expired_problems_chat_ids);
-    unset_expired_problems_thread_running = 0;
+    cJSON_Delete(chat_ids);
+    delete_expired_problems_thread_running = 0;
     return NULL;
 }
 
