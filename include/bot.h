@@ -53,6 +53,9 @@
     #define MAX_COMMAND_BAN_SIZE     4
     #define MAX_COMMAND_UNBAN_SIZE   6
 
+    #define MAX_DELETE_EXPIRED_PROBLEMS_INTERVAL   300 // 5 minutes.
+    #define MAX_UPDATE_PROBLEMS_USERNAMES_INTERVAL 600 // 10 minutes.
+
     #define NOKEYBOARD "{\"remove_keyboard\":true}"
 
     #define get_current_keyboard(chat_id) (has_problem(chat_id) ? \

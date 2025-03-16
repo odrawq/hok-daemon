@@ -28,8 +28,9 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <inttypes.h>
 #include <string.h>
+#include <inttypes.h>
+#include <unistd.h>
 
 #include <cjson/cJSON.h>
 
@@ -146,6 +147,9 @@ static void *delete_expired_problems(void *_)
     }
 
     cJSON_Delete(chat_ids);
+
+    sleep(MAX_DELETE_EXPIRED_PROBLEMS_INTERVAL);
+
     delete_expired_problems_thread_running = 0;
     return NULL;
 }
@@ -215,6 +219,9 @@ static void *update_problems_usernames(void *_)
     }
 
     cJSON_Delete(problems);
+
+    sleep(MAX_UPDATE_PROBLEMS_USERNAMES_INTERVAL);
+
     update_problems_usernames_thread_running = 0;
     return NULL;
 }
