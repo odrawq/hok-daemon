@@ -168,7 +168,8 @@ static void *update_problems_usernames(void *_)
         char problem[MAX_PROBLEM_SIZE + 1];
 
         if (sscanf(cJSON_GetStringValue(cJSON_GetArrayItem(problems, i)),
-                   "(%" SCNdFAST64 ") @%[^:]: %[^\\0]",
+                   "(%" SCNdFAST64
+                   ") @%[^:]: %[^\\0]",
                    &chat_id,
                    username,
                    problem) != 3)
@@ -258,9 +259,8 @@ static void handle_updates(cJSON *updates, const int maintenance_mode)
 static void *handle_message_in_maintenance_mode(void *cjson_message)
 {
     cJSON *message = cjson_message;
-    const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(cJSON_GetObjectItem(message, "chat"), "id"));
 
-    send_message_with_keyboard(chat_id,
+    send_message_with_keyboard(cJSON_GetNumberValue(cJSON_GetObjectItem(cJSON_GetObjectItem(message, "chat"), "id")),
                                EMOJI_FAILED " Извините, бот временно недоступен\n\n"
                                "Проводятся технические работы. Пожалуйста, ожидайте!",
                                "");
