@@ -427,10 +427,6 @@ static void handle_command(const int_fast64_t chat_id,
         handle_unban_command(chat_id,
                              root_access,
                              command + MAX_COMMAND_UNBAN_SIZE);
-    else if (!strcmp(command, COMMAND_CANCEL))
-        send_message_with_keyboard(chat_id,
-                                   EMOJI_FAILED " Извините, вы не описываете проблему",
-                                   "");
     else
         send_message_with_keyboard(chat_id,
                                    EMOJI_FAILED " Извините, я не знаю такого действия",
@@ -472,9 +468,8 @@ static void handle_helpme_command(const int_fast64_t chat_id, const char *userna
         {
             set_state(chat_id, "problem_description_state", 1);
             send_message_with_keyboard(chat_id,
-                                       EMOJI_WRITE " Опишите вашу проблему\n\n"
-                                       "Отменить - /cancel.",
-                                       NOKEYBOARD);
+                                       EMOJI_WRITE " Опишите вашу проблему",
+                                       get_current_keyboard(chat_id));
         }
     }
 }

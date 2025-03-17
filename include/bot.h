@@ -36,6 +36,7 @@
     #define EMOJI_GREETING  "\U0001F44B"
     #define EMOJI_INFO      "\U00002139"
 
+    #define COMMAND_CANCEL       EMOJI_FAILED    " Отменить"
     #define COMMAND_HELPSOMEONE  EMOJI_SEARCH    " Помочь кому-нибудь"
     #define COMMAND_HELPME       EMOJI_ATTENTION " Мне нужна помощь"
     #define COMMAND_CLOSEPROBLEM EMOJI_OK        " Моя проблема решена"
@@ -46,7 +47,6 @@
     #define COMMAND_BANLIST      "/banlist"
     #define COMMAND_BAN          "/ban"
     #define COMMAND_UNBAN        "/unban"
-    #define COMMAND_CANCEL       "/cancel"
 
     #define MAX_COMMAND_CONFIRM_SIZE 8
     #define MAX_COMMAND_DECLINE_SIZE 8
@@ -63,10 +63,15 @@
                                            "[[{\"text\":\"" COMMAND_CLOSEPROBLEM "\"}," \
                                            "{\"text\":\"" COMMAND_HELPSOMEONE "\"}]]," \
                                            "\"resize_keyboard\":true}" : \
-                                           "{\"keyboard\":" \
-                                           "[[{\"text\":\"" COMMAND_HELPME "\"}," \
-                                           "{\"text\":\"" COMMAND_HELPSOMEONE "\"}]]," \
-                                           "\"resize_keyboard\":true}")
+                                           (get_state(chat_id, "problem_description_state") ? \
+                                            "{\"keyboard\":" \
+                                            "[[{\"text\":\"" COMMAND_CANCEL "\"}]]," \
+                                            "\"resize_keyboard\":true}" : \
+                                            "{\"keyboard\":" \
+                                            "[[{\"text\":\"" COMMAND_HELPME "\"}," \
+                                            "{\"text\":\"" COMMAND_HELPSOMEONE "\"}]]," \
+                                            "\"resize_keyboard\":true}"))
+
 
     void start_bot(const int maintenance_mode);
 
