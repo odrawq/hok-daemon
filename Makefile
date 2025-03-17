@@ -84,7 +84,7 @@ install:
 
 	@echo -e '\e[0;33;1mCreating $(TARGET) user...\e[0m'
 
-	id -u $(TARGET) > /dev/null 2>&1 || sudo useradd -rs /bin/false $(TARGET)
+	id -u $(TARGET) > /dev/null 2>&1 || sudo useradd -Mrs /bin/false $(TARGET)
 
 	@echo -e '\e[0;33;1mSetting access permissions...\e[0m'
 
