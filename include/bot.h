@@ -72,7 +72,6 @@
                                             "{\"text\":\"" COMMAND_HELPSOMEONE "\"}]]," \
                                             "\"resize_keyboard\":true}"))
 
-
     void start_bot(const int maintenance_mode);
 
 #endif

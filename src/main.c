@@ -44,36 +44,33 @@
 static void handle_args(int argc, char **argv);
 static void check_user(void);
 static void daemonize(void);
+static void init_signals(void);
+static void init_modules(void);
+static void init_info(void);
 static void handle_signal(const int signal);
+
+static int maintenance_mode = 0;
 
 static pid_t pid;
 static char *mode;
 
-static int maintenance_mode = 0;
-
 int main(int argc, char **argv)
 {
     handle_args(argc, argv);
+
     check_user();
     daemonize();
 
-    pid = getpid();
-    mode = maintenance_mode ? "maintenance" : "default";
+    init_signals();
+    init_modules();
+    init_info();
 
-    report("hok-daemon %d.%d.%d started (mode: %s; PID: %d)",
+    report("hok-daemon %d.%d.%d started (PID: %d; Mode: %s)",
            MAJOR_VERSION,
            MINOR_VERSION,
            PATCH_VERSION,
-           mode,
-           pid);
-
-    signal(SIGTERM, handle_signal);
-    signal(SIGSEGV, handle_signal);
-
-    init_requests_module();
-
-    if (!maintenance_mode)
-        init_data_module();
+           pid,
+           mode);
 
     start_bot(maintenance_mode);
 }
@@ -105,13 +102,13 @@ static void handle_args(int argc, char **argv)
         {
             case 'h':
                 printf("Usage: hok-daemon [option]\n"
-                       "Daemon for controlling the 'Hands of Kindness' telegram bot.\n\n"
+                       "Daemon for controlling the 'Hands of Kindness' Telegram bot.\n\n"
                        "Options:\n"
                        "  -h, --help           print this help and exit\n"
                        "  -v, --version        print the hok-daemon version and exit\n"
                        "  -m, --maintenance    run the hok-daemon in maintenance mode\n"
-                       "\nTo run hok-daemon, run it as the hok-daemon user.\n"
-                       "\nPlease send bug reports to: <odrawq.qwardo@gmail.com>\n");
+                       "\nTo run the hok-daemon, run it as the hok-daemon user."
+                       "\nPlease send bug reports to <odrawq.qwardo@gmail.com>\n");
                 exit(EXIT_SUCCESS);
 
             case 'v':
@@ -186,17 +183,37 @@ static void daemonize(void)
     }
 }
 
+static void init_signals(void)
+{
+    signal(SIGTERM, handle_signal);
+    signal(SIGSEGV, handle_signal);
+}
+
+static void init_modules(void)
+{
+    init_requests_module();
+
+    if (!maintenance_mode)
+        init_data_module();
+}
+
+static void init_info(void)
+{
+    pid = getpid();
+    mode = maintenance_mode ? "Maintenance" : "Default";
+}
+
 static void handle_signal(const int signal)
 {
     switch (signal)
     {
         case SIGTERM:
-            report("hok-daemon %d.%d.%d terminated (mode: %s; PID: %d)",
+            report("hok-daemon %d.%d.%d terminated (PID: %d; Mode: %s)",
                    MAJOR_VERSION,
                    MINOR_VERSION,
                    PATCH_VERSION,
-                   mode,
-                   pid);
+                   pid,
+                   mode);
             exit(EXIT_SUCCESS);
 
         case SIGSEGV:

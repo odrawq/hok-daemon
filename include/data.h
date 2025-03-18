@@ -78,7 +78,7 @@
     /*
      * Returns all specified users problems.
      * Users problems can be
-     * non-pending and non-banned, pending and non-banned, non-pending and banned, pending and banned.
+     * non-pending and non-banned, pending and non-banned, non-pending and banned or pending and banned.
      */
     cJSON *get_problems(const int include_chat_ids, const int pending_problems, const int banned_problems);
 

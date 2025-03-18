@@ -214,16 +214,11 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, MAX_CONNECT_TIMEOUT);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, MAX_RESPONSE_TIMEOUT);
 
-    CURLcode code;
     int retries = 0;
 
     do
-    {
-        code = curl_easy_perform(curl);
-
-        if (code == CURLE_OK)
+        if (curl_easy_perform(curl) == CURLE_OK)
             break;
-    }
     while (++retries < MAX_REQUEST_RETRIES);
 
     curl_free(escaped_message);
