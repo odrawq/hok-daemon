@@ -276,6 +276,15 @@ static void *handle_message(void *cjson_message)
     const cJSON *chat = cJSON_GetObjectItem(message, "chat");
     const int_fast64_t chat_id = cJSON_GetNumberValue(cJSON_GetObjectItem(chat, "id"));
 
+    if (strcmp(cJSON_GetStringValue(cJSON_GetObjectItem(chat, "type")), "private"))
+    {
+        send_message_with_keyboard(chat_id,
+                                   EMOJI_FAILED " Извините, я могу работать только в личных сообщениях",
+                                   "");
+        leave_chat(chat_id);
+        goto exit;
+    }
+
     const int root_access = (chat_id == ROOT_CHAT_ID);
 
     if (get_state(chat_id, "account_ban_state"))

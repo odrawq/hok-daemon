@@ -179,6 +179,35 @@ cJSON *get_chat(const int_fast64_t chat_id)
     return chat;
 }
 
+void leave_chat(const int_fast64_t chat_id)
+{
+    CURL *curl = curl_easy_init();
+
+    if (!curl)
+        die("%s: %s: failed to initialize curl",
+            __BASE_FILE__,
+            __func__);
+
+    char post_fields[MAX_POSTFIELDS_SIZE];
+    sprintf(post_fields,
+            "chat_id=%" PRIdFAST64,
+            chat_id);
+
+    curl_easy_setopt(curl, CURLOPT_URL, BOT_API_URL "/leaveChat");
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, MAX_CONNECT_TIMEOUT);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, MAX_RESPONSE_TIMEOUT);
+
+    int retries = 0;
+
+    do
+        if (curl_easy_perform(curl) == CURLE_OK)
+            break;
+    while (++retries < MAX_REQUEST_RETRIES);
+
+    curl_easy_cleanup(curl);
+}
+
 void send_message_with_keyboard(const int_fast64_t chat_id, const char *message, const char *keyboard)
 {
     CURL *curl = curl_easy_init();

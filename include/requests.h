@@ -57,6 +57,11 @@
     cJSON *get_chat(const int_fast64_t chat_id);
 
     /*
+     * Leaves a chat via the Telegram Bot API.
+     */
+    void leave_chat(const int_fast64_t chat_id);
+
+    /*
      * Sends a message with a keyboard to a chat via the Telegram Bot API.
      */
     void send_message_with_keyboard(const int_fast64_t chat_id, const char *message, const char *keyboard);
