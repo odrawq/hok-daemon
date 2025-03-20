@@ -139,10 +139,11 @@ cJSON *get_problems(const int include_chat_ids, const int pending_problems, cons
             else
             {
                 char chat_id_with_problem[MAX_CHAT_ID_SIZE + MAX_USERNAME_SIZE + MAX_PROBLEM_SIZE + 7];
-                sprintf(chat_id_with_problem,
-                        "(%s) %s",
-                        user->string,
-                        text->valuestring);
+                snprintf(chat_id_with_problem,
+                         sizeof chat_id_with_problem,
+                         "(%s) %s",
+                         user->string,
+                         text->valuestring);
 
                 cJSON_AddItemToArray(problems, cJSON_CreateString(chat_id_with_problem));
             }
@@ -259,9 +260,10 @@ static void save_users(void)
 static cJSON *get_or_create_user(const int_fast64_t chat_id, const int save_on_creation)
 {
     char chat_id_string[MAX_CHAT_ID_SIZE + 1];
-    sprintf(chat_id_string,
-            "%" PRIdFAST64,
-            chat_id);
+    snprintf(chat_id_string,
+             sizeof chat_id_string,
+             "%" PRIdFAST64,
+             chat_id);
 
     cJSON *user = cJSON_GetObjectItem(users_cache, chat_id_string);
 

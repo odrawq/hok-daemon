@@ -73,12 +73,13 @@ cJSON *get_updates(const int_fast32_t update_id)
     response.size = 0;
 
     char url[MAX_URL_SIZE];
-    sprintf(url,
-            "%s/getUpdates?offset=%" PRIdFAST32
-            "&timeout=%d",
-            BOT_API_URL,
-            update_id,
-            MAX_RESPONSE_TIMEOUT);
+    snprintf(url,
+             sizeof url,
+             "%s/getUpdates?offset=%" PRIdFAST32
+             "&timeout=%d",
+             BOT_API_URL,
+             update_id,
+             MAX_RESPONSE_TIMEOUT);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -137,10 +138,11 @@ cJSON *get_chat(const int_fast64_t chat_id)
     response.size = 0;
 
     char url[MAX_URL_SIZE];
-    sprintf(url,
-            "%s/getChat?chat_id=%" PRIdFAST64,
-            BOT_API_URL,
-            chat_id);
+    snprintf(url,
+             sizeof url,
+             "%s/getChat?chat_id=%" PRIdFAST64,
+             BOT_API_URL,
+             chat_id);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -189,9 +191,10 @@ void leave_chat(const int_fast64_t chat_id)
             __func__);
 
     char post_fields[MAX_POSTFIELDS_SIZE];
-    sprintf(post_fields,
-            "chat_id=%" PRIdFAST64,
-            chat_id);
+    snprintf(post_fields,
+             sizeof post_fields,
+             "chat_id=%" PRIdFAST64,
+             chat_id);
 
     curl_easy_setopt(curl, CURLOPT_URL, BOT_API_URL "/leaveChat");
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
@@ -225,13 +228,14 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
             __func__);
 
     char post_fields[MAX_POSTFIELDS_SIZE];
-    sprintf(post_fields,
-            "chat_id=%" PRIdFAST64
-            "&text=%s"
-            "&reply_markup=%s",
-            chat_id,
-            escaped_message,
-            keyboard);
+    snprintf(post_fields,
+             sizeof post_fields,
+             "chat_id=%" PRIdFAST64
+             "&text=%s"
+             "&reply_markup=%s",
+             chat_id,
+             escaped_message,
+             keyboard);
 
     curl_easy_setopt(curl, CURLOPT_URL, BOT_API_URL "/sendMessage");
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);

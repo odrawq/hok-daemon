@@ -201,10 +201,11 @@ static void *update_problems_usernames(void *_)
         else if (strcmp(username, current_username))
         {
             char username_with_problem[MAX_USERNAME_SIZE + MAX_PROBLEM_SIZE + 4];
-            sprintf(username_with_problem,
-                    "@%s: %s",
-                    current_username,
-                    problem);
+            snprintf(username_with_problem,
+                     sizeof username_with_problem,
+                     "@%s: %s",
+                     current_username,
+                     problem);
 
             modify_problem(chat_id, username_with_problem);
 
@@ -360,10 +361,11 @@ static void handle_problem(const int_fast64_t chat_id,
     }
 
     char username_with_problem[MAX_USERNAME_SIZE + MAX_PROBLEM_SIZE + 4];
-    sprintf(username_with_problem,
-            "@%s: %s",
-            username,
-            problem);
+    snprintf(username_with_problem,
+             sizeof username_with_problem,
+             "@%s: %s",
+             username,
+             problem);
 
     create_problem(chat_id, username_with_problem, !root_access);
     set_state(chat_id, "problem_description_state", 0);
@@ -520,16 +522,18 @@ static void handle_start_command(const int_fast64_t chat_id, const int root_acce
     char start_message[strlen(user_greeting) + strlen(bot_description) + MAX_USERNAME_SIZE + 6];
 
     if (username)
-        sprintf(start_message,
-                "%s, @%s\n\n%s",
-                user_greeting,
-                username,
-                bot_description);
+        snprintf(start_message,
+                 sizeof start_message,
+                 "%s, @%s\n\n%s",
+                 user_greeting,
+                 username,
+                 bot_description);
     else
-        sprintf(start_message,
-                "%s\n\n%s",
-                user_greeting,
-                bot_description);
+        snprintf(start_message,
+                 sizeof start_message,
+                 "%s\n\n%s",
+                 user_greeting,
+                 bot_description);
 
     send_message_with_keyboard(chat_id,
                                start_message,
