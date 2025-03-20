@@ -268,6 +268,7 @@ static cJSON *get_or_create_user(const int_fast64_t chat_id, const int save_on_c
     if (!user)
     {
         user = cJSON_CreateObject();
+
         cJSON_AddNumberToObject(user, "account_ban_state", 0);
         cJSON_AddNumberToObject(user, "problem_pending_state", 1);
         cJSON_AddNumberToObject(user, "problem_description_state", 0);

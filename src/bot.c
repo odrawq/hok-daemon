@@ -803,6 +803,7 @@ static void handle_unban_command(const int_fast64_t chat_id, const int root_acce
             else
             {
                 delete_problem(target_chat_id);
+
                 set_state(target_chat_id, "problem_pending_state", 1);
                 set_state(target_chat_id, "account_ban_state", 0);
 

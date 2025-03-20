@@ -233,12 +233,7 @@ void send_message_with_keyboard(const int_fast64_t chat_id, const char *message,
             escaped_message,
             keyboard);
 
-    char url[MAX_URL_SIZE];
-    sprintf(url,
-            "%s/sendMessage",
-            BOT_API_URL);
-
-    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_URL, BOT_API_URL "/sendMessage");
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, MAX_CONNECT_TIMEOUT);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, MAX_RESPONSE_TIMEOUT);
