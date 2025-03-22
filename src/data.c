@@ -136,7 +136,7 @@ void delete_problem(const int_fast64_t chat_id)
     pthread_mutex_unlock(&users_cache_mutex);
 }
 
-cJSON *get_problems(const int include_chat_ids, const int pending_problems, const int banned_problems)
+cJSON *get_problems(const int include_chat_ids, const int pending_problems, const int banned_accounts)
 {
     cJSON *problems = cJSON_CreateArray();
 
@@ -148,10 +148,10 @@ cJSON *get_problems(const int include_chat_ids, const int pending_problems, cons
         const int problem_pending_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "problem_pending_state"));
         const int account_ban_state = cJSON_GetNumberValue(cJSON_GetObjectItem(user, "account_ban_state"));
 
-        if ((!pending_problems && !banned_problems && (problem_pending_state || account_ban_state)) || // Skipping pending and banned problem.
-            (pending_problems && !banned_problems && (!problem_pending_state || account_ban_state)) || // Skipping non-pending and banned problem.
-            (!pending_problems && banned_problems && (problem_pending_state || !account_ban_state)) || // Skipping pending and non-banned problem.
-            (pending_problems && banned_problems && (!problem_pending_state || !account_ban_state)))   // Skipping non-pending and non-banned problem.
+        if ((!pending_problems && !banned_accounts && (problem_pending_state || account_ban_state)) || // Skipping pending problem and banned account.
+            (pending_problems && !banned_accounts && (!problem_pending_state || account_ban_state)) || // Skipping non-pending problem and banned account.
+            (!pending_problems && banned_accounts && (problem_pending_state || !account_ban_state)) || // Skipping pending problem and non-banned account.
+            (pending_problems && banned_accounts && (!problem_pending_state || !account_ban_state)))   // Skipping non-pending problem and non-banned account.
             goto next;
 
         const cJSON *problem = cJSON_GetObjectItem(user, "problem");

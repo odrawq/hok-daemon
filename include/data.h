@@ -48,12 +48,13 @@
     int has_user(const int_fast64_t chat_id);
 
     /*
-     * Creates a user.
+     * Creates a user with
+     * 'account_ban_state' = 0, 'problem_pending_state' = 1 and 'problem_description_state' = 0 by default.
      */
     void create_user(const int_fast64_t chat_id);
 
     /*
-     * Returns a user state, which can be 0 or 1.
+     * Returns a user state, which must be 0 or 1.
      * state_name must be 'account_ban_state', 'problem_pending_state' or 'problem_description_state'.
      */
     int get_state(const int_fast64_t chat_id, const char *state_name);
@@ -86,11 +87,9 @@
     void delete_problem(const int_fast64_t chat_id);
 
     /*
-     * Returns all specified users problems.
-     * Users problems can be
-     * non-pending and non-banned, pending and non-banned, non-pending and banned or pending and banned.
+     * Returns all users problems with a specified parameters.
      */
-    cJSON *get_problems(const int include_chat_ids, const int pending_problems, const int banned_problems);
+    cJSON *get_problems(const int include_chat_ids, const int pending_problems, const int banned_accounts);
 
     /*
      * Returns all expired users problems chat ids.
