@@ -29,7 +29,7 @@
     #define VERSION_H
 
     #define MAJOR_VERSION 4
-    #define MINOR_VERSION 4
+    #define MINOR_VERSION 5
     #define PATCH_VERSION 0
 
 #endif
