@@ -43,6 +43,16 @@
     void init_data_module(void);
 
     /*
+     * Returns 1 if a user exists, else 0.
+     */
+    int has_user(const int_fast64_t chat_id);
+
+    /*
+     * Creates a user.
+     */
+    void create_user(const int_fast64_t chat_id);
+
+    /*
      * Returns a user state, which can be 0 or 1.
      * state_name must be 'account_ban_state', 'problem_pending_state' or 'problem_description_state'.
      */

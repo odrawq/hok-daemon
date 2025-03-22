@@ -38,7 +38,7 @@
 
 static void load_users(void);
 static void save_users(void);
-static cJSON *get_or_create_user(const int_fast64_t chat_id, const int save_on_creation);
+static char *get_chat_id_string(const int_fast64_t chat_id);
 
 static cJSON *users_cache;
 static pthread_mutex_t users_cache_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -48,10 +48,35 @@ void init_data_module(void)
     load_users();
 }
 
+int has_user(const int_fast64_t chat_id)
+{
+    pthread_mutex_lock(&users_cache_mutex);
+    const int state = cJSON_GetObjectItem(users_cache, get_chat_id_string(chat_id)) ? 1 : 0;
+    pthread_mutex_unlock(&users_cache_mutex);
+
+    return state;
+}
+
+void create_user(const int_fast64_t chat_id)
+{
+    cJSON *user = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(user, "account_ban_state", 0);
+    cJSON_AddNumberToObject(user, "problem_pending_state", 1);
+    cJSON_AddNumberToObject(user, "problem_description_state", 0);
+
+    pthread_mutex_lock(&users_cache_mutex);
+
+    cJSON_AddItemToObject(users_cache, get_chat_id_string(chat_id), user);
+    save_users();
+
+    pthread_mutex_unlock(&users_cache_mutex);
+}
+
 int get_state(const int_fast64_t chat_id, const char *state_name)
 {
     pthread_mutex_lock(&users_cache_mutex);
-    const cJSON *state = cJSON_GetObjectItem(get_or_create_user(chat_id, 1), state_name);
+    const cJSON *state = cJSON_GetObjectItem(cJSON_GetObjectItem(users_cache, get_chat_id_string(chat_id)), state_name);
     pthread_mutex_unlock(&users_cache_mutex);
 
     return state->valueint;
@@ -61,7 +86,7 @@ void set_state(const int_fast64_t chat_id, const char *state_name, const int sta
 {
     pthread_mutex_lock(&users_cache_mutex);
 
-    cJSON_SetIntValue(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), state_name), state_value);
+    cJSON_SetIntValue(cJSON_GetObjectItem(cJSON_GetObjectItem(users_cache, get_chat_id_string(chat_id)), state_name), state_value);
     save_users();
 
     pthread_mutex_unlock(&users_cache_mutex);
@@ -70,7 +95,7 @@ void set_state(const int_fast64_t chat_id, const char *state_name, const int sta
 int has_problem(const int_fast64_t chat_id)
 {
     pthread_mutex_lock(&users_cache_mutex);
-    const int state = cJSON_GetObjectItem(get_or_create_user(chat_id, 1), "problem") ? 1 : 0;
+    const int state = cJSON_GetObjectItem(cJSON_GetObjectItem(users_cache, get_chat_id_string(chat_id)), "problem") ? 1 : 0;
     pthread_mutex_unlock(&users_cache_mutex);
 
     return state;
@@ -79,12 +104,13 @@ int has_problem(const int_fast64_t chat_id)
 void create_problem(const int_fast64_t chat_id, const char *problem_text, const int use_time_limit)
 {
     cJSON *problem = cJSON_CreateObject();
+
     cJSON_AddNumberToObject(problem, "time", use_time_limit ? time(NULL) : 0);
     cJSON_AddStringToObject(problem, "text", problem_text);
 
     pthread_mutex_lock(&users_cache_mutex);
 
-    cJSON_AddItemToObject(get_or_create_user(chat_id, 0), "problem", problem);
+    cJSON_AddItemToObject(cJSON_GetObjectItem(users_cache, get_chat_id_string(chat_id)), "problem", problem);
     save_users();
 
     pthread_mutex_unlock(&users_cache_mutex);
@@ -94,7 +120,7 @@ void modify_problem(const int_fast64_t chat_id, const char *problem_text)
 {
     pthread_mutex_lock(&users_cache_mutex);
 
-    cJSON_SetValuestring(cJSON_GetObjectItem(cJSON_GetObjectItem(get_or_create_user(chat_id, 0), "problem"), "text"), problem_text);
+    cJSON_SetValuestring(cJSON_GetObjectItem(cJSON_GetObjectItem(cJSON_GetObjectItem(users_cache, get_chat_id_string(chat_id)), "problem"), "text"), problem_text);
     save_users();
 
     pthread_mutex_unlock(&users_cache_mutex);
@@ -104,7 +130,7 @@ void delete_problem(const int_fast64_t chat_id)
 {
     pthread_mutex_lock(&users_cache_mutex);
 
-    cJSON_DeleteItemFromObject(get_or_create_user(chat_id, 0), "problem");
+    cJSON_DeleteItemFromObject(cJSON_GetObjectItem(users_cache, get_chat_id_string(chat_id)), "problem");
     save_users();
 
     pthread_mutex_unlock(&users_cache_mutex);
@@ -257,29 +283,13 @@ static void save_users(void)
     free(users_string);
 }
 
-static cJSON *get_or_create_user(const int_fast64_t chat_id, const int save_on_creation)
+static char *get_chat_id_string(const int_fast64_t chat_id)
 {
-    char chat_id_string[MAX_CHAT_ID_SIZE + 1];
+    static char chat_id_string[MAX_CHAT_ID_SIZE + 1];
     snprintf(chat_id_string,
              sizeof chat_id_string,
              "%" PRIdFAST64,
              chat_id);
 
-    cJSON *user = cJSON_GetObjectItem(users_cache, chat_id_string);
-
-    if (!user)
-    {
-        user = cJSON_CreateObject();
-
-        cJSON_AddNumberToObject(user, "account_ban_state", 0);
-        cJSON_AddNumberToObject(user, "problem_pending_state", 1);
-        cJSON_AddNumberToObject(user, "problem_description_state", 0);
-
-        cJSON_AddItemToObject(users_cache, chat_id_string, user);
-
-        if (save_on_creation)
-            save_users();
-    }
-
-    return user;
+    return chat_id_string;
 }
