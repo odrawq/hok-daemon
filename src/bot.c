@@ -44,7 +44,7 @@ static void *delete_expired_problems(void *_);
 static void *update_problems_usernames(void *_);
 static void handle_updates(cJSON *updates, const int maintenance_mode);
 static void *handle_message_in_maintenance_mode(void *cjson_message);
-static void *handle_message(void *cjson_message);
+static void *handle_message_in_default_mode(void *cjson_message);
 static void handle_problem(const int_fast64_t chat_id,
                            const int root_access,
                            const char *username,
@@ -246,7 +246,7 @@ static void handle_updates(cJSON *updates, const int maintenance_mode)
 
             if (pthread_create(&handle_message_thread,
                                NULL,
-                               maintenance_mode ? handle_message_in_maintenance_mode : handle_message,
+                               maintenance_mode ? handle_message_in_maintenance_mode : handle_message_in_default_mode,
                                cJSON_Duplicate(message, 1)))
                 die("%s: %s: failed to create handle_message_thread",
                     __BASE_FILE__,
@@ -270,7 +270,7 @@ static void *handle_message_in_maintenance_mode(void *cjson_message)
     return NULL;
 }
 
-static void *handle_message(void *cjson_message)
+static void *handle_message_in_default_mode(void *cjson_message)
 {
     cJSON *message = cjson_message;
 

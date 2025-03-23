@@ -186,7 +186,7 @@ static void check_user(void)
  */
 static void check_instance(void)
 {
-    int fd = open(FILE_LOCK, O_CREAT | O_RDWR, 0644);
+    const int fd = open(FILE_LOCK, O_CREAT | O_RDWR, 0644);
 
     if (fd < 0)
     {
