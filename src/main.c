@@ -25,13 +25,16 @@
  *                                                                            *
  ******************************************************************************/
 
+#include <sys/file.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <getopt.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <pwd.h>
 
 #include "version.h"
 #include "log.h"
@@ -41,8 +44,11 @@
 
 #define ERRORSTAMP "\e[0;31;1mError:\e[0m"
 
+#define FILE_LOCK "/var/run/hok-daemon/hok-daemon.lock"
+
 static void handle_args(int argc, char **argv);
 static void check_user(void);
+static void check_instance(void);
 static void daemonize(void);
 static void init_signals(void);
 static void init_modules(void);
@@ -59,6 +65,7 @@ int main(int argc, char **argv)
     handle_args(argc, argv);
 
     check_user();
+    check_instance();
     daemonize();
 
     init_signals();
@@ -169,6 +176,36 @@ static void check_user(void)
     {
         fprintf(stderr,
                 ERRORSTAMP " hok-daemon must be start under the hok-daemon user\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+/*
+ * Checks if another instance of hok-daemon is already running.
+ * If so, terminates the process.
+ */
+static void check_instance(void)
+{
+    int fd = open(FILE_LOCK, O_CREAT | O_RDWR, 0644);
+
+    if (fd < 0)
+    {
+        fprintf(stderr,
+                ERRORSTAMP " failed to open or create %s\n",
+                FILE_LOCK);
+        exit(EXIT_FAILURE);
+    }
+
+    if (flock(fd, LOCK_EX | LOCK_NB))
+    {
+        if (errno == EWOULDBLOCK)
+            fprintf(stderr,
+                    ERRORSTAMP " hok-daemon is already running\n");
+        else
+            fprintf(stderr,
+                    ERRORSTAMP " failed to lock %s\n",
+                    FILE_LOCK);
+
         exit(EXIT_FAILURE);
     }
 }
