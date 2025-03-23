@@ -38,12 +38,12 @@ SRC_DIR     := src/
 BUILD_DIR   := build/
 SYSTEMD_DIR := /etc/systemd/system/
 BIN_DIR     := /usr/local/bin/
-LOG_DIR     := /var/log/
-DATA_DIR    := /var/lib/
+LOG_DIR     := /var/log/$(TARGET)/
+DATA_DIR    := /var/lib/$(TARGET)/
 
-USERS_FILE     := users.json
 INFO_LOG_FILE  := info_log
 ERROR_LOG_FILE := error_log
+USERS_FILE     := users.json
 
 OBJ_FILES := $(patsubst $(SRC_DIR)%.c, $(BUILD_DIR)%.o, $(wildcard $(SRC_DIR)*.c))
 
@@ -65,7 +65,7 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%.c
 -include $(OBJ_FILES:.o=.d)
 
 clean:
-	@echo -e '\e[0;33;1mCleaning build files...\e[0m'
+	@echo -e '\e[0;33;1mCleaning $(TARGET) build files...\e[0m'
 
 	rm -rf $(BUILD_DIR)
 
@@ -78,9 +78,8 @@ install:
 
 	@echo -e '\e[0;33;1mCreating $(TARGET) files...\e[0m'
 
-	sudo mkdir -p $(LOG_DIR)$(TARGET)/ $(DATA_DIR)$(TARGET)/
-	sudo touch $(LOG_DIR)$(TARGET)/$(INFO_LOG_FILE) $(LOG_DIR)$(TARGET)/$(ERROR_LOG_FILE)
-	sudo test -f $(DATA_DIR)$(TARGET)/$(USERS_FILE) || echo '{}' | sudo tee $(DATA_DIR)$(TARGET)/$(USERS_FILE) > /dev/null
+	sudo mkdir -p $(LOG_DIR) $(DATA_DIR)
+	sudo test -f $(DATA_DIR)$(USERS_FILE) || echo '{}' | sudo tee $(DATA_DIR)$(USERS_FILE) > /dev/null
 
 	@echo -e '\e[0;33;1mCreating $(TARGET) user...\e[0m'
 
@@ -88,8 +87,8 @@ install:
 
 	@echo -e '\e[0;33;1mSetting access permissions...\e[0m'
 
-	sudo chown -R $(TARGET):$(TARGET) $(LOG_DIR)$(TARGET)/ $(DATA_DIR)$(TARGET)/
-	sudo chmod 700 $(LOG_DIR)$(TARGET)/ $(DATA_DIR)$(TARGET)/
+	sudo chown -R $(TARGET):$(TARGET) $(LOG_DIR) $(DATA_DIR)
+	sudo chmod 700 $(LOG_DIR) $(DATA_DIR)
 
 	@echo -e '\e[0;33;1mChecking for systemd...\e[0m'
 
@@ -107,7 +106,7 @@ uninstall:
 purge: uninstall
 	@echo -e '\e[0;33;1mDeleting $(TARGET) files...\e[0m'
 
-	sudo rm -rf $(LOG_DIR)$(TARGET)/ $(DATA_DIR)$(TARGET)/
+	sudo rm -rf $(LOG_DIR) $(DATA_DIR)
 
 	@echo -e '\e[0;33;1mDeleting $(TARGET) user...\e[0m'
 

@@ -211,7 +211,7 @@ static void *update_problems_usernames(void *_)
 
             report("User %" PRIdFAST64
                    " changed username from '%s'"
-                   " to '%s'",
+                   " to '%s' and problem was updated",
                    chat_id,
                    username,
                    current_username);
