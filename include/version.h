@@ -30,6 +30,6 @@
 
     #define MAJOR_VERSION 4
     #define MINOR_VERSION 6
-    #define PATCH_VERSION 2
+    #define PATCH_VERSION 3
 
 #endif
