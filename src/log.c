@@ -33,13 +33,12 @@
 
 #include "log.h"
 
-static char *get_current_timestamp(void);
-
-static pthread_mutex_t log_files_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t info_log_mutex  = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t error_log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void report(const char *fmt, ...)
 {
-    pthread_mutex_lock(&log_files_mutex);
+    pthread_mutex_lock(&info_log_mutex);
 
     FILE *info_log = fopen(FILE_INFOLOG, "a");
 
@@ -49,52 +48,51 @@ void report(const char *fmt, ...)
             __func__,
             FILE_INFOLOG);
 
-    fprintf(info_log, "%s ", get_current_timestamp());
+    const time_t current_time = time(NULL);
 
+    char timestamp[MAX_TIMESTAMP_SIZE + 1];
+    strftime(timestamp,
+             sizeof timestamp,
+             "[%Y-%m-%d %H:%M:%S]",
+             localtime(&current_time));
+
+    fprintf(info_log, "%s ", timestamp);
     va_list argp;
     va_start(argp, fmt);
     vfprintf(info_log, fmt, argp);
     va_end(argp);
-
     fputc('\n', info_log);
 
     fclose(info_log);
 
-    pthread_mutex_unlock(&log_files_mutex);
+    pthread_mutex_unlock(&info_log_mutex);
 }
 
 void die(const char *fmt, ...)
 {
-    pthread_mutex_lock(&log_files_mutex);
+    pthread_mutex_lock(&error_log_mutex);
 
     FILE *error_log = fopen(FILE_ERRORLOG, "a");
 
     if (error_log)
     {
-        fprintf(error_log, "%s ", get_current_timestamp());
+        const time_t current_time = time(NULL);
 
+        char timestamp[MAX_TIMESTAMP_SIZE + 1];
+        strftime(timestamp,
+                 sizeof timestamp,
+                 "[%Y-%m-%d %H:%M:%S]",
+                 localtime(&current_time));
+
+        fprintf(error_log, "%s ", timestamp);
         va_list argp;
         va_start(argp, fmt);
         vfprintf(error_log, fmt, argp);
         va_end(argp);
-
         fputc('\n', error_log);
 
         fclose(error_log);
     }
 
     exit(EXIT_FAILURE);
-}
-
-static char *get_current_timestamp(void)
-{
-    const time_t current_time = time(NULL);
-
-    static char timestamp[MAX_TIMESTAMP_SIZE + 1];
-    strftime(timestamp,
-             sizeof timestamp,
-             "[%Y-%m-%d %H:%M:%S]",
-             localtime(&current_time));
-
-    return timestamp;
 }
