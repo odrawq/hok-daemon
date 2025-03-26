@@ -26,6 +26,7 @@
  ******************************************************************************/
 
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -44,11 +45,13 @@
 
 #define ERRORSTAMP "\e[0;31;1mError:\e[0m"
 
-#define FILE_LOCK "/var/run/hok-daemon/hok-daemon.lock"
+#define DIR_LOCK  "/var/run/hok-daemon/"
+#define FILE_LOCK "hok-daemon.lock"
 
 static void handle_args(int argc, char **argv);
-static void check_user(void);
+static void init_pw(void);
 static void check_instance(void);
+static void drop_privileges(void);
 static void daemonize(void);
 static void init_signals(void);
 static void init_modules(void);
@@ -57,6 +60,8 @@ static void handle_signal(const int signal);
 
 static int maintenance_mode = 0;
 
+static struct passwd *pw;
+
 static pid_t pid;
 static char *mode;
 
@@ -64,8 +69,10 @@ int main(int argc, char **argv)
 {
     handle_args(argc, argv);
 
-    check_user();
+    init_pw();
     check_instance();
+    drop_privileges();
+
     daemonize();
 
     init_signals();
@@ -114,8 +121,9 @@ static void handle_args(int argc, char **argv)
                        "  -h, --help           print this help and exit\n"
                        "  -v, --version        print the hok-daemon version and exit\n"
                        "  -m, --maintenance    run the hok-daemon in maintenance mode\n"
-                       "\nTo run the hok-daemon, run it as the hok-daemon user."
-                       "\nPlease send bug reports to <odrawq.qwardo@gmail.com>\n");
+                       "\nTo run the hok-daemon, run it with the superuser privileges."
+                       "\nhok-daemon will automatically drop privileges to the hok-daemon user."
+                       "\n\nPlease send bug reports to <odrawq.qwardo@gmail.com>\n");
                 exit(EXIT_SUCCESS);
 
             case 'v':
@@ -157,25 +165,12 @@ static void handle_args(int argc, char **argv)
     }
 }
 
-/*
- * Checks the user running the process.
- * If the user is not hok-daemon, terminates the process.
- */
-static void check_user(void)
+static void init_pw(void)
 {
-    const struct passwd *pw = getpwuid(getuid());
-
-    if (!pw)
+    if (!(pw = getpwnam("hok-daemon")))
     {
         fprintf(stderr,
-                ERRORSTAMP " failed to get user data\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (strcmp(pw->pw_name, "hok-daemon"))
-    {
-        fprintf(stderr,
-                ERRORSTAMP " hok-daemon must be start under the hok-daemon user\n");
+                ERRORSTAMP " failed to get hok-daemon user data\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -186,13 +181,38 @@ static void check_user(void)
  */
 static void check_instance(void)
 {
-    const int fd = open(FILE_LOCK, O_CREAT | O_RDWR, 0644);
+    if (access(DIR_LOCK, F_OK))
+    {
+        if (!mkdir(DIR_LOCK, 0700))
+            chown(DIR_LOCK, pw->pw_uid, pw->pw_gid);
+        else
+        {
+            fprintf(stderr,
+                    ERRORSTAMP " failed to create %s\n",
+                    DIR_LOCK);
+            exit(EXIT_FAILURE);
+        }
+    }
 
-    if (fd < 0)
+    int fd = open(DIR_LOCK FILE_LOCK, O_CREAT | O_RDWR | O_EXCL, 0644);
+
+    if (fd >= 0)
+        fchown(fd, pw->pw_uid, pw->pw_gid);
+    else if (errno == EEXIST)
+    {
+        if ((fd = open(DIR_LOCK FILE_LOCK, O_RDWR)) < 0)
+        {
+            fprintf(stderr,
+                    ERRORSTAMP " failed to open %s\n",
+                    DIR_LOCK FILE_LOCK);
+            exit(EXIT_FAILURE);
+        }
+    }
+    else
     {
         fprintf(stderr,
                 ERRORSTAMP " failed to open or create %s\n",
-                FILE_LOCK);
+                DIR_LOCK FILE_LOCK);
         exit(EXIT_FAILURE);
     }
 
@@ -204,8 +224,29 @@ static void check_instance(void)
         else
             fprintf(stderr,
                     ERRORSTAMP " failed to lock %s\n",
-                    FILE_LOCK);
+                    DIR_LOCK FILE_LOCK);
 
+        exit(EXIT_FAILURE);
+    }
+}
+
+/*
+ * Drops the process privileges by setting its GID and UID to
+ * those of the hok-daemon user.
+ */
+static void drop_privileges(void)
+{
+    if (setgid(pw->pw_gid) < 0)
+    {
+        fprintf(stderr,
+                ERRORSTAMP " failed to set hok-daemon user GID\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (setuid(pw->pw_uid) < 0)
+    {
+        fprintf(stderr,
+                ERRORSTAMP " failed to set hok-daemon user UID\n");
         exit(EXIT_FAILURE);
     }
 }

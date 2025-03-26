@@ -38,11 +38,10 @@ SRC_DIR     := src/
 BUILD_DIR   := build/
 SYSTEMD_DIR := /etc/systemd/system/
 BIN_DIR     := /usr/local/bin/
-LOCK_DIR    := /var/run/$(TARGET)/
 LOG_DIR     := /var/log/$(TARGET)/
 DATA_DIR    := /var/lib/$(TARGET)/
+LOCK_DIR    := /var/run/$(TARGET)/
 
-LOCK_FILE      := hok-daemon.lock
 INFO_LOG_FILE  := info_log
 ERROR_LOG_FILE := error_log
 USERS_FILE     := users.json
@@ -80,7 +79,7 @@ install:
 
 	@echo -e '\e[0;33;1mCreating $(TARGET) files...\e[0m'
 
-	sudo mkdir -p $(LOCK_DIR) $(LOG_DIR) $(DATA_DIR)
+	sudo mkdir -p $(LOG_DIR) $(DATA_DIR)
 	sudo test -f $(DATA_DIR)$(USERS_FILE) || echo '{}' | sudo tee $(DATA_DIR)$(USERS_FILE) > /dev/null
 
 	@echo -e '\e[0;33;1mCreating $(TARGET) user...\e[0m'
@@ -89,8 +88,8 @@ install:
 
 	@echo -e '\e[0;33;1mSetting access permissions...\e[0m'
 
-	sudo chown -R $(TARGET):$(TARGET) $(LOCK_DIR) $(LOG_DIR) $(DATA_DIR)
-	sudo chmod 700 $(LOCK_DIR) $(LOG_DIR) $(DATA_DIR)
+	sudo chown -R $(TARGET):$(TARGET) $(LOG_DIR) $(DATA_DIR)
+	sudo chmod 700 $(LOG_DIR) $(DATA_DIR)
 
 	@echo -e '\e[0;33;1mChecking for systemd...\e[0m'
 
@@ -108,7 +107,7 @@ uninstall:
 purge: uninstall
 	@echo -e '\e[0;33;1mDeleting $(TARGET) files...\e[0m'
 
-	sudo rm -rf $(LOCK_DIR) $(LOG_DIR) $(DATA_DIR)
+	sudo rm -rf $(LOG_DIR) $(DATA_DIR) $(LOCK_DIR)
 
 	@echo -e '\e[0;33;1mDeleting $(TARGET) user...\e[0m'
 

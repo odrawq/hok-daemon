@@ -32,7 +32,6 @@ Conflicts=hok-daemon.service
 
 [Service]
 Type=forking
-User=hok-daemon
 ExecStart=/usr/local/bin/hok-daemon -m
 Restart=no
 
