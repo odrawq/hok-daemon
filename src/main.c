@@ -183,12 +183,17 @@ static void check_instance(void)
 {
     if (access(DIR_LOCK, F_OK))
     {
-        if (!mkdir(DIR_LOCK, 0700))
-            chown(DIR_LOCK, pw->pw_uid, pw->pw_gid);
-        else
+        if (mkdir(DIR_LOCK, 0700))
         {
             fprintf(stderr,
                     ERRORSTAMP " failed to create %s\n",
+                    DIR_LOCK);
+            exit(EXIT_FAILURE);
+        }
+        else if (chown(DIR_LOCK, pw->pw_uid, pw->pw_gid))
+        {
+            fprintf(stderr,
+                    ERRORSTAMP " failed to change %s ownership\n",
                     DIR_LOCK);
             exit(EXIT_FAILURE);
         }
@@ -197,7 +202,15 @@ static void check_instance(void)
     int fd = open(DIR_LOCK FILE_LOCK, O_CREAT | O_RDWR | O_EXCL, 0644);
 
     if (fd >= 0)
-        fchown(fd, pw->pw_uid, pw->pw_gid);
+    {
+        if (fchown(fd, pw->pw_uid, pw->pw_gid))
+        {
+            fprintf(stderr,
+                    ERRORSTAMP " failed to change %s ownership\n",
+                    DIR_LOCK FILE_LOCK);
+            exit(EXIT_FAILURE);
+        }
+    }
     else if (errno == EEXIST)
     {
         if ((fd = open(DIR_LOCK FILE_LOCK, O_RDWR)) < 0)
