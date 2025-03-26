@@ -44,7 +44,7 @@ make install
 3. Запустить hok-daemon:
 - Нативный запуск:
 ```bash
-sudo -u hok-daemon hok-daemon
+sudo hok-daemon
 ```
 - Запуск через systemd:
 ```bash
@@ -54,7 +54,7 @@ sudo systemctl start hok-daemon
 Для проведения технических работ запустите hok-daemon в режиме обслуживания. В этом режиме hok-daemon будет отправлять пользователям сообщение о проведении технических работ:
 - Нативный запуск:
 ```bash
-sudo -u hok-daemon hok-daemon -m
+sudo hok-daemon -m
 ```
 - Запуск через systemd:
 ```bash
@@ -76,10 +76,11 @@ make uninstall
 ```bash
 make purge
 ```
-## Логи и данные
-- Файлы для запуска через systemd находятся по путям /etc/systemd/system/hok-daemon.service и /etc/systemd/system/hok-daemon-maintenance.service;
+## Расположение файлов
 - Файл с логом обычной информации находится по пути /var/log/hok-daemon/info_log;
 - Файл с логом ошибок находится по пути /var/log/hok-daemon/error_log;
-- Файл с данными пользователей находится по пути /var/lib/hok-daemon/users.json.
+- Файл с данными пользователей находится по пути /var/lib/hok-daemon/users.json;
+- Файл блокировки находится по пути /var/run/hok-daemon/hok-daemon.lock;
+- Файлы для запуска через systemd находятся по путям /etc/systemd/system/hok-daemon.service и /etc/systemd/system/hok-daemon-maintenance.service.
 ## Лицензия
 Этот проект лицензирован по лицензии GNU General Public License v3.0 (GPL-3.0) - подробности в файле [LICENSE](LICENSE).
